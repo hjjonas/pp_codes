@@ -27,7 +27,7 @@ extern void setup_simulation( void );
 // void print_particle_properties(void);
 // void ratcheting_prep(Slice *);
 // int ratcheting_prep_conditions(int , int );
-// void read_input(Slice *);
+void read_input(Slice *);
 // void restart_read_time(Slice *);
 // void setup_delta(void);
 // void setup_mc_move(MC *);
@@ -35,7 +35,6 @@ extern void setup_simulation( void );
 
 /*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
-
 typedef struct init_type {
 // Here all parameters to initialize the configuration, e.g. read from file 
     
@@ -52,5 +51,9 @@ typedef struct init_type {
     char          directorypath[500];   // used to load files in a different folder, else this is "./" i.e. the current folder
 } Init;
 
+/*---------------------------------------------------------------------------*/
+/*------------------LOCAL STRUCTURES------------------------------------*/
+
+Init init_conf;
 
 #endif
