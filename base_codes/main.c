@@ -3,6 +3,8 @@
 Slice        *slice, *psl_old, *start_slice, *copyslice;
 System       sys;
 
+vector        nulvec;
+
 
 // The main function of the simulation program
 int main(int argc, char **argv) {
@@ -449,31 +451,31 @@ void error(char *msg){
 // }
 
 
-// void update_patch_vector_ipart(Slice *psl, int ipart){
-//     // reads the quaternion of the particle and transforms it into a patch vector for each site
-//     Pts *psi;
-//     int isite,ptype;
-//     tensor rotmati;
+void update_patch_vector_ipart(Slice *psl, int ipart){
+    // reads the quaternion of the particle and transforms it into a patch vector for each site
+    Pts *psi;
+    int isite,ptype;
+    tensor rotmati;
     
-//     psi = &psl->pts[ipart]; // particle ipart
-//     rotmati = getrotmatrix(psi->q);  // return the rotation matrix based on the quaterion
-//     for( isite=0; isite<sys.particletype[psi->ptype].nsites; isite++) {
-//         ptype=psi->ptype;
-//         // in sys.particletype[psi->ptype].site the standard patch vector is written.
-//         matrix_x_vector(rotmati,sys.particletype[psi->ptype].site[isite],psi->patchvector[isite]); 
-//     }
-//     return;
-// }
+    psi = &psl->pts[ipart]; // particle ipart
+    rotmati = getrotmatrix(psi->q);  // return the rotation matrix based on the quaterion
+    for( isite=0; isite<sys.particletype[psi->ptype].nsites; isite++) {
+        ptype=psi->ptype;
+        // in sys.particletype[psi->ptype].site the standard patch vector is written.
+        matrix_x_vector(rotmati,sys.particletype[psi->ptype].site[isite],psi->patchvector[isite]); 
+    }
+    return;
+}
 
-// void update_patch_vectors(Slice *psl){
-//     // in the quaternion is updates, you also need to update the patch vectors, 
-//     // this funcitons updates all patch vectors
-//     int ipart;
-//     for(ipart=0;ipart<psl->nparts;ipart++){
-//         update_patch_vector_ipart(psl, ipart);
-//     }
-//     return;
-// } 
+void update_patch_vectors(Slice *psl){
+    // in the quaternion is updates, you also need to update the patch vectors, 
+    // this funcitons updates all patch vectors
+    int ipart;
+    for(ipart=0;ipart<psl->nparts;ipart++){
+        update_patch_vector_ipart(psl, ipart);
+    }
+    return;
+} 
 
 
 
