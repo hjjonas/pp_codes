@@ -4,9 +4,7 @@
 #define ANALYSIS_H
 
 
-/*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
-
 typedef struct statistics_type {
   /* struct for statistics: running mean and variance
   mean = u_n = u_{n-1} + (x_n-u_{n-1})/n
@@ -73,26 +71,20 @@ typedef struct analysis_type {
                 bond_op,
                 xy_print,
                 print_trajectory,
-                bond_tracking;
+                bond_tracking,
+                bond_breakage;
                   
-  double        bond_breakage,
-                bond_avg;
+  double        bond_avg;
 
   int           *s_distribution_ptr,
                 *rdfanalysis_ptr,
                 *bond_op_ptr;
 
 } Analysis;
-
 /*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------*/
-void DFS(Slice *,int  ,IntArray *, Slice *);
 
 
-
-/*---------------------------------------------------------------------------*/
-/*------------------GLOBAL FUNCTIONS------------------------------------*/
-
+/*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 extern void linking_all_cluster(Slice *psl);
 extern void  add_bond_information(Slice *,int ,int ,double ,double ,double );
 extern int bond_check(Slice *, int , int );
@@ -108,15 +100,13 @@ extern double running_mean(double, double, long);
 extern void reset_running_statistics(Statistics *);
 extern void running_statistics(Statistics *, double );
 extern int particle_in_wall(Slice *psl, int ipart);
-
 extern void particles_distance_length_vector(Slice *, int , int  ,double *, double *,vector *);
-
-
 /*---------------------------------------------------------------------------*/
-/*------------------GLOBAL STRUCTURES------------------------------------*/
 
+/*------------------GLOBAL STRUCTURES----------------------------------------*/
 Cluster cluster;
 Analysis analysis;
+/*---------------------------------------------------------------------------*/
 
 #endif
 
