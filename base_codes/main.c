@@ -1,29 +1,17 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <string.h>
 #include "path.h"
-#include <stdint.h>
-#include <time.h>
-#include <unistd.h>
-#include <dirent.h> 
 
-//   this version of the code is build such that all simulations can be run using the same files
-// each simulation type will have its own  (.c and .h) files
-// including them in the make file whenever necessary
 
 // The main function of the simulation program
 int main(int argc, char **argv) {
 
     // Declare variables
-    int icycle, jcycle;     // Loop counters
-    double energy;          // Energy variable
-    FILE *emptyfile, *rdffile;  // File pointers
+    // int icycle, jcycle;     // Loop counters
+    // double energy;          // Energy variable
+    // FILE *emptyfile, *rdffile;  // File pointers
     time_t t0 = time(0);    // Time at start of program
     
     // Call function to set up simulation parameters
-    // setup_simulation();
+    setup_simulation();
     
     // // Plot the potential if specified in parameters
     // plotpotential();
