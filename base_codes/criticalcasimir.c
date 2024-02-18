@@ -92,18 +92,18 @@ void setup_criticalCasimir_potential_parameters(void){
 
     pot.dl=0.0008673892526; // = 2.775645608174734e-03 micron/ 3.2 micron
 
-    printf("    SIMONS POTENTIAL PARAMETERS:\nthese parameters are based on a system with:\n");
-    printf("salt concentration:             1mM MgSO4   = 4.0 \n");
-    printf("volume fraction lutidine =      25\%%vol      \n");
-    printf("DP-A particles met diameter=    3.2 micron \n");
-    printf("patch curvature R=              1.0 micron  \n");
-    printf("Debye length    =               2.775645608174734e-03 micron / %20.15lf sigma \n",pot.dl);
+    printf("    *******CRITICAL CASIMIR POTENTIAL PARAMETERS********:\n      these parameters are based on a system with:\n");
+    printf("            salt concentration:             1mM MgSO4   = 4.0 \n");
+    printf("            volume fraction lutidine =      25\%%vol      \n");
+    printf("            DP-A particles met diameter=    3.2 micron \n");
+    printf("            patch curvature R=              1.0 micron  \n");
+    printf("            Debye length    =               2.775645608174734e-03 micron / %20.15lf sigma \n",pot.dl);
 
 
-    printf("these parameters are fitted between:\n");
-    printf("rwet in [0.30,0.60]\n");
-    printf("sc   in [-0.50,-0.01] \n");
-    printf("dt   in [0.10,0.22]\n");
+    printf("      these parameters are fitted between:\n");
+    printf("            rwet in [0.30,0.60]\n");
+    printf("            sc   in [-0.50,-0.01] \n");
+    printf("            dt   in [0.10,0.22]\n");
 
     // so read the input parameters, 
     dt=pot.dT;
