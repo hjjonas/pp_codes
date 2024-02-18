@@ -1,28 +1,25 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <string.h>
 #include "path.h"
 
+/*SETUP / UPDate in constructnn.c . Code written by PGB, comments by HJJ*/
 
-/*SETUP / UPDate in constructnn.c*/
-
-// List list;  
-
-// void setup_nnlist();
-// void print_cell_list(psl);
-
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
+void put_parts_in_box(Slice *);
+void create_cell_list(Slice *);
+void find_neighbor_using_cells(Slice *,int);
+void find_neighbor(Slice *,int );
+void print_nnlist();
+int check_nnlist(Slice *);
+/*---------------------------------------------------------------------------*/
 
 void setup_nnlist(){
-  /* name a bit misleeding? it creates the cells, not a nn list? */
+  /* name a bit misleeding? it creates the cells, not a nn list? filling the list happens at update_nn */
   int ix,iy,iz,k;
 
   printf("minimum cellsize = %g\n", MINCELLSIZE ); 
   printf("maximum cells in x =%d\n",NCELLX );
   
   list.cutoff=3.5;
-  list.cutoff=2; /* rc Simons Potential = +- 1.1 sigma* */
+  list.cutoff=2; /* rc critical Casimir Potential = +- 1.1 sigma* */
 
   list.cutoff2= list.cutoff * list.cutoff;
   list.cellx = sys.boxl.x / (0.5*list.cutoff);  /*nr of cells in x,y,z direction (int). determined by the cutoff*/
@@ -134,12 +131,11 @@ void create_cell_list(Slice *psl){
     if ((iz<0) || (iz>=list.cellz)) error("iz not correct\n");
         
     n = list.cell[ix][iy][iz].n;
-    if (n+1>STACKDEPTH) error("too many particles in cell\n"); /* stackdepth= 30. why 30? */
+    if (n+1>STACKDEPTH) error("too many particles in cell\n"); /* stackdepth= 30. why 30? HJJ: I think just to put some boundary to it tthat is not too large or too small */
 
     /*add the number of particle i to the stack of particlenumbers of cell[ix][iy][iz] and add +1 to the number of particles in cell[ix][iy][iz]*/
     list.cell[ix][iy][iz].stack[n] =i;   
     list.cell[ix][iy][iz].n++;
-
   }
 }
 
