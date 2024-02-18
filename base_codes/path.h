@@ -29,6 +29,8 @@ typedef struct quaternion_type {
     double        q0,q1,q2,q3;
 } quaternion;
 
+
+
 typedef struct particletype_type {
   /*there are diffent kind of particle type
   e.g. dipatch particle with diameter 3.2 miron = 1 sigma
@@ -133,12 +135,15 @@ typedef struct slice_type {
 #include "analysis.h"
 #include "init.h"
 #include "random.h"
+#include "quaternion.h"
+#include "switchfunction.h"
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
 
 extern Slice        *slice, *psl_old, *start_slice, *copyslice;
 extern System       sys;
+extern vector       nulvec;
 
 // in criticalcasimir.h
 extern Potential     pot; 
@@ -146,6 +151,12 @@ extern Potential     pot;
 // in analysis.h
 extern Cluster cluster;
 extern Analysis analysis;
+
+// in quaternion.h
+
+// in switchfunction.h
+extern Site site[NSITES]; 
+
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
 
@@ -161,8 +172,8 @@ extern Analysis analysis;
 extern void error(char *);
 // extern double cosangle_to_angle(double );
 // extern int check_nan(double *);
-// extern void update_patch_vector_ipart(Slice *, int );
-// extern void update_patch_vectors(Slice *);
+extern void update_patch_vector_ipart(Slice *, int );
+extern void update_patch_vectors(Slice *);
 // extern void free_all_memory(void); 
 // extern void linking_all_cluster(Slice *);
 
