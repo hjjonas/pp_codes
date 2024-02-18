@@ -1,6 +1,19 @@
 #include "path.h"
 
 
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
+void printstatusbmd(Slice *psl);
+void count_empty_clusters_monomers(Slice *, int *, int *);
+void print_pos_sites(Slice *);
+void print_energy_s_theta1_theta2(Slice *);
+void print_statistics_N1(Statistics , char [100]);
+void print_statistics_file(StatsLength *,Slice *);
+// void printrdf();
+// PUT IN VERSION SPECIFIC c file: void print_association_dissociation_times(void);
+
+/*---------------------------------------------------------------------------*/
+
+
 
 void terminate_block(Slice *psl) {
 
@@ -130,8 +143,7 @@ void finalstat(Slice *psl) {
     else if(sys.sim_type==2) {
         printf("\n*** MC stats **\n");
         optimizemc();
-        final_printstatusmc_sub(mc_single_large);
-        final_printstatusmc_sub(mc_single_small);
+        final_printstatusmc_sub(mc_single);
 
         if(sys.cluster_MC==1){
             final_printstatusmc_sub(mc_cluster);
@@ -142,13 +154,10 @@ void finalstat(Slice *psl) {
         error("use only simtype 2 for MC or 0 for bmd");
     }
     
-
     //  print RDF to file if rdfanalysis is turned on
     // if(sys.rdfanalysis==1){
     //     printrdf();
     // }
-
-
     
     return;
 }
@@ -226,7 +235,7 @@ void printstatusbmd(Slice *psl) {
 
     // printf("printstatusbmd\n");
     if(sys.nearest_neighbor) {
-        // forcecheck_nn(psl);
+        forcecheck_nn(psl);
         energycheck_nn(psl);
     }
     printf("cumulative time  %lf s\n", psl->c_time);
