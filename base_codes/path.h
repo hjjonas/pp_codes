@@ -12,9 +12,14 @@
 /*------------------FIXED/HARD CODED MAXIMUM VALUES ------------------------------------*/
 
 #define NPART 1000        // maximum number of particles
-#define NSITES 3          //maximum number of sites on 1 particle
+#define NSITES 6          //maximum number of sites on 1 particle
 #define PTYPES 6          //particle types; eg dipatch and tripatch cC potential --> 2 
 #define MAXBONDS NSITES   // maximum number of bonds
+
+// to select way to "move the particles" in sys.simtype
+#define MC_ALGORITHM 2
+#define BMD_ALGORITHM 0
+#define READ_TRAJECTORY 1
 
 
 /*---------------------------------------------------------------------------*/
@@ -132,11 +137,18 @@ typedef struct slice_type {
 /*------------------THE H-FILES----------------------------------------------*/
 
 #include "criticalcasimir.h"
+#include "storage.h"
 #include "analysis.h"
 #include "init.h"
 #include "random.h"
 #include "quaternion.h"
 #include "switchfunction.h"
+#include "terminate_block.h"
+#include "mc.h"
+
+#include "energy.h"
+#include "constructnn.h"
+#include "bmd.h"
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
@@ -154,8 +166,15 @@ extern Analysis analysis;
 
 // in quaternion.h
 
+// in mc.h
+extern MC  mc_single_large, mc_single_small, mc_cluster, mc_mono, mc_tailflip;
+
 // in switchfunction.h
 extern Site site[NSITES]; 
+
+// in constructnn.h
+extern List list;
+
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
@@ -164,14 +183,13 @@ extern Site site[NSITES];
 // extern void terminate_block(Slice *);
 // extern void finalstat(Slice *);
 // extern void bmdcycle();
-// extern void mccycle();
 // extern void mc_warmup(Slice *);
 // extern void ffscycle(int, int);
 // extern void mainloop_for_graphics();
-// extern void emptyfiles();
+extern void emptyfiles();
 extern void error(char *);
-// extern double cosangle_to_angle(double );
-// extern int check_nan(double *);
+extern double cosangle_to_angle(double );
+extern int check_nan(double *);
 extern void update_patch_vector_ipart(Slice *, int );
 extern void update_patch_vectors(Slice *);
 // extern void free_all_memory(void); 
@@ -185,10 +203,6 @@ extern void update_patch_vectors(Slice *);
 #define TRUE 1
 #define FALSE 0
 #define CANCELLED -99
-
-#define SIM_MC 2
-#define SIM_BMD 0
-#define SIM_READ 1
 
 #define P_INDEX(ptr)  (ptr - pts)
 #define F_COMP(a,b) (fabs( a-b ) < 1e-10)
