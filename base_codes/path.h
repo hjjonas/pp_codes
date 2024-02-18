@@ -3,7 +3,10 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h> 
+#include <time.h>
 
 /*------------------INLINE SUBSTITUTIONS-------------------------------------*/
 
@@ -217,10 +220,28 @@ typedef struct system_type {
 
 } System;
 
+typedef struct slice_type {
+// the slice parametrs, in principle you should be able to have mulplie slices
+  // with different system settings
+
+    Pts           pts[NPART];
+
+    double        energy,
+                  beta,
+                  temp,
+                  bond_probability,   // this is a measurement on the slice, maybe make separate struct for the measurements
+                  c_time; // current  time 
+
+    int           nclusters,
+                  nbonds,
+                  nparts;
+
+} Slice;
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
 
+extern Slice        *slice, *psl_old, *start_slice, *copyslice;
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
@@ -242,3 +263,7 @@ typedef struct system_type {
 // extern void free_all_memory(void); 
 // extern void linking_all_cluster(Slice *);
 
+/*---------------------------------------------------------------------------*/
+/*------------------THE H-FILES----------------------------------------------*/
+#include "random.h"
+#include "init.h"
