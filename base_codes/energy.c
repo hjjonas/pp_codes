@@ -1,5 +1,12 @@
 #include "path.h"
 
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
+double E_active_alignment(Slice *, int );
+void particle_pair_energy(Slice *, int , int , double *, double *, double *);
+double total_Epair_neighborlist(Slice *);
+double wall_interaction_ipart(Slice *, int );
+double total_Epair_woneighborlist(Slice *);
+/*---------------------------------------------------------------------------*/
 
 
 double total_energy(Slice *psl) { 
@@ -57,28 +64,6 @@ vector find_directing_patchvector(Slice *psl, int ipart,vector u1){
 
     return p1_select;
 }
-
-int find_directing_isite(Slice *psl, int ipart,vector u1){
-    /* find the patchevector on particle ipart that makes the smalles  angle with interparticle vector u1
-    it does track here if this angle falls within the patch range/width*/
-    int isite_select,isite; 
-    double tracker_i=-1,cositheta;
-
-
-    for( isite=0; isite<sys.particletype[psl->pts[ipart].ptype].nsites; isite++ ) {
-        vector p1=psl->pts[ipart].patchvector[isite];
-        cositheta=vector_inp(u1,p1); 
-        
-        if(cositheta<tracker_i) {
-            continue;
-        }
-        tracker_i=cositheta;
-        isite_select=isite;
-    }
-
-    return isite_select;
-}
-
 
 double harmonic_oscillator(double k,  double x_shift,double x){
     return 1./2*k*(x-x_shift)*(x-x_shift);
@@ -244,10 +229,7 @@ void orientation_parameters(Slice *psl, int ipart, int jpart, vector u1, double 
     scalar_times(u1,-1,min_u1); //make here -u1, because you need to flip the u1 vector, to find p1 (and patch angle) correctly.
     p1= find_directing_patchvector(psl, ipart,  min_u1);
     p2= find_directing_patchvector(psl, jpart,  u1);
-    // dprint(ipart);
-    // vprint(p1);
-    // dprint(jpart);
-    // vprint(p2);
+    
     calc_angles( u1,p1, p2,costheta_i,costheta_j,costheta_ij, calc_ij); // this function gives back theta_i, theta_j and theta_ij (if calc_ij==1)
 
     return;
@@ -260,6 +242,12 @@ void calc_angles( vector u1,vector p1,vector p2, double *ptrcostheta_i, double *
     
     costheta_i=-vector_inp(u1,p1); 
     costheta_j=vector_inp(u1,p2); 
+    // gprint(costheta_i);
+    // gprint(costheta_j);
+    // vprint(u1);
+    // vprint(p1);
+    // vprint(p2);
+
 
     *ptrcostheta_i=costheta_i;
     *ptrcostheta_j=costheta_j;
@@ -307,6 +295,7 @@ double potential_attractive_bond_energy(Slice *psl, int ipart, int jpart, double
     typei=psl->pts[ipart].ptype;
     typej=psl->pts[jpart].ptype;
 
+    // PUT THIS IN INIT AT MAXDEFS CHECK
     if ((typei>sys.nparticle_types) || (typej>sys.nparticle_types)){
         dprint(typei);
         dprint(typej);
@@ -321,14 +310,17 @@ double potential_attractive_bond_energy(Slice *psl, int ipart, int jpart, double
     orientation_parameters( psl,  ipart,  jpart, u1, &cositheta, &cosjtheta, &cosijtheta);
 
     /*consider the treshold of the patches */
-    if ((sys.particletype[typei].nsites==3) && (sys.particletype[typej].nsites==3)){
-        S=0; // no interaction between two tripatch particles
-            //WARNING THIS IS SPECIFIC FOR ACTIVE NETWORK
-    }else if ((cositheta<cosdelta_i) || (cosjtheta<cosdelta_j)){
+    // if ((sys.particletype[typei].nsites==3) && (sys.particletype[typej].nsites==3)){
+    //     S=0; // no interaction between two tripatch particles
+    //         //WARNING THIS IS SPECIFIC FOR ACTIVE NETWORK
+    // }else 
+    if ((cositheta<cosdelta_i) || (cosjtheta<cosdelta_j)){
         S=0;
+        return 0;
     }
     else{
         S=S_value(cositheta,cosjtheta, cosijtheta, typei, typej);
+        // gprint(S);
     }
 
     
@@ -347,7 +339,6 @@ double potential_attractive_bond_energy(Slice *psl, int ipart, int jpart, double
     //     vprint(psl->pts[jpart].r);
     //     gprint(cositheta);
     //     gprint(cosjtheta);
-
     // }
 
     if(Ebond!=0.){
