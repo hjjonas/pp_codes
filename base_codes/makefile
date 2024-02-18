@@ -1,5 +1,5 @@
-SRCS=	 main.c init.c random.c
-OBJS=	 main.o init.o random.o
+SRCS=	 main.c init.c random.c criticalcasimir.c analysis.c
+OBJS=	 main.o init.o random.o criticalcasimir.o analysis.o
 
 HFILES = 
 
@@ -10,7 +10,7 @@ CF2 =   gcc-10
 FFLAGS = -Wno-deprecated-declarations   
 PARALLEL = -fopenmp
 LIBS =   -lm    -framework OpenGL -framework Glut -framework Cocoa 
-OUT =	./runfile.run
+OUT =	test_runfile/runfile.run
 
 
 opt:	$(SRCS:.c=.o)
