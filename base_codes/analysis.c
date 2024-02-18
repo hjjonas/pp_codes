@@ -4,6 +4,10 @@
 
 #include "path.h"
 
+/*------------------LOCAL FUNCTIONS------------------------------------*/
+void DFS(Slice *,int  ,IntArray *, Slice *);
+/*---------------------------------------------------------------------------*/
+
 
 
 void linking_all_cluster(Slice *psl){
