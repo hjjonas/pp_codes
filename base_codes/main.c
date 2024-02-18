@@ -410,15 +410,15 @@ int main(int argc, char **argv) {
 //     return ;
 // }
 
-// void error(char *msg){
-// /*This function is a simple error-handling function that takes an error message as an argument 
-//     and prints it along with the "error:" prefix. 
-//     It then exits the program with an error code of 0. */
-//   printf("error: %s\n",msg);
+void error(char *msg){
+/*This function is a simple error-handling function that takes an error message as an argument 
+    and prints it along with the "error:" prefix. 
+    It then exits the program with an error code of 0. */
+  printf("error: %s\n",msg);
 
  
-//   exit(0);
-// }
+  exit(0);
+}
 
 
 // double cosangle_to_angle(double cosangle){
