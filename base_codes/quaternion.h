@@ -3,12 +3,10 @@
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL VARIABLES-----------------------------------------*/
-
 /*---------------------------------------------------------------------------*/
-/*------------------STRUCTURE DEFINITIONS------------------------------------*/
 
+/*------------------STRUCTURE DEFINITIONS------------------------------------*/
 typedef struct tensor_type {
     vector        x,y,z;
 } tensor;
@@ -18,10 +16,9 @@ typedef struct quattensor_type {
     vector        w,x,y,z;
 
 } quattensor;
-
 /*---------------------------------------------------------------------------*/
-/*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 
+/*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 extern double langrange_multiplier_quat(quaternion, quaternion);
 extern quaternion quatVecToVec(vector, vector);
 extern tensor getrotmatrix(quaternion);
@@ -34,14 +31,12 @@ extern quaternion QuaternionZaxis( double );
 extern void rotate_quaternion_ipart( Slice *, int , quaternion  );
 extern quaternion FlipQuaternion(vector  , double ) ;
 extern quaternion normalize_quat(quaternion );
-
 /*---------------------------------------------------------------------------*/
+
 /*------------------LOCAL FUNCTIONS------------------------------------------*/
-
-
-
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBAL STRUCTURES-----------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
 
 
