@@ -190,18 +190,20 @@ void init_model(Slice *psl) {
     /*setting up the parameters of the potentials, based on wetting , surface charge*/
     setup_criticalCasimir_potential_parameters(); // casimir potential 
 
-    // /*take minimum bond length for bond average*/
-    // printf("\nLooking for the minimum of the potential...");
-    // pot.s_min= find_minimum_of_potential();
-    // pot.s_overlap = find_overlap_distance(); // do this after finding s_min
-    // pot.s_forcecut = find_forcecutoff_distance(); // only used in BMD
+    /*take minimum bond length for bond average*/
+    printf("\nLooking for the minimum of the potential...");
+    pot.s_min= find_minimum_of_potential();
+    pot.s_overlap = find_overlap_distance(); // do this after finding s_min
 
-    // pot.bond_cutoffE=-0.1; // this defines the bond
+    // NOTE: only used in BMD!! MOVE THIS FUNCTION
+    // pot.s_forcecut = find_forcecutoff_distance(); 
 
-    // //first read in the particle, specifies particle types etc
-    // printf("Setting up the positions and sites for the particles...");
-    // setup_positions_sites(psl);
-    // printf("done\n");
+    pot.bond_cutoffE=-0.1; // this defines the bond based on energy
+
+    //first read in the particle, specifies particle types etc
+    printf("Setting up the positions and sites for the particles...");
+    setup_positions_sites(psl);
+    printf("done\n");
     
     // //patchwidth variables
     // printf("Setting up the patch widths definitions for the particles...");
@@ -234,268 +236,262 @@ void init_model(Slice *psl) {
 
     return;
 }
-// double find_minimum_of_potential(void){
-//     /* actually just use deriveative much easier? 
-//     this code looks for the minimum of the potential by increasing s the surface-surface distance and reading the attractive and repulsive potential
+double find_minimum_of_potential(void){
+    /* actually just use deriveative much easier? 
+    this code looks for the minimum of the potential by increasing s the surface-surface distance and reading the attractive and repulsive potential
+    it returns the surface-surface-distance at the minimum*/
 
+    double s_min = 1.1, Utot_tracked = 0, Uattr_tracked = 0, Urep_tracked = 0;
+    double s, Urep, Uattr, Utot;
 
-//     it returns the surface-surface-distance at the minimum*/
-//     double s, Utot, Urep, Uattr, Utot_tracked=0, s_min=1.1, Uattr_tracked=0, Urep_tracked=0;
-//     int r;
-//     potential_attractive_energy_sdist(0.);
-//     // gprint(pot.sqw_epsilon);
-//     if(pot.sqw_epsilon!=0){
-//         return pot.s_cutoff;
-//     }
-//     else{
-//         for (r=1;r<100000;r++){
-//             s=r/100000. *0.10;
+    // HJ: dont remember why this is necessary.. I think
+    potential_attractive_energy_sdist(0.);
+
+    // if you are using the square well potential, return the cutoff (which is an input variable)
+    if(pot.sqw_epsilon!=0){ return pot.s_cutoff;}
+    else{ // when using critical Casimir
+        for (int r=1;r<100000;r++){
+            s=r/100000. *0.10;
     
-//             Urep = potential_repulsive_energy_sdist(s);
-//             Uattr = potential_attractive_energy_sdist(s);
-//             Utot = Urep+Uattr;
+            Urep = potential_repulsive_energy_sdist(s);
+            Uattr = potential_attractive_energy_sdist(s);
+            Utot = Urep+Uattr;
             
     
-//             if (Utot<Utot_tracked){
-//                 s_min=s;
-//                 Utot_tracked=Utot;
-//                 Uattr_tracked=Uattr;
-//                 Urep_tracked=Urep;
+            if (Utot<Utot_tracked){
+                s_min=s;
+                Utot_tracked=Utot;
+                Uattr_tracked=Uattr;
+                Urep_tracked=Urep;
     
-//             }
-//         }
-//         pot.Erep_smin=Urep_tracked;
-//         pot.Ec_smin=Uattr_tracked;
-//         pot.E_smin=Utot_tracked;
-//         printf(" the colloid-colloid distance with minimum energy sys.E_smin=%lf (sys.Ec_smin=%lf, sys.Erep_smin=%lf) is %lf \n", pot.E_smin, pot.Ec_smin, pot.Erep_smin, s_min );
-//         pot.s_min=s_min;
-//         printf("found s_min = %lf [sigma]\n", pot.s_min);
-//         if (pot.s_min>1.0){
-//             error("define pot.s_min such that the minimum energy and the bond definition ( == 1 procent of minimum ) can be calculated ");
-//         }
-//         return s_min;
-//     }
-// }
-// double find_overlap_distance(void ){
-//     /*looks for the value of s (surface-surface-distance) at which you define the particles to overlap = s_overlap
-//     take it as the distance at which the  energy is 22/beta away from the minimum  --> probability of 1 in 4 miljard = exp(-22)
-//     */
+            }
+        }
+        pot.Erep_smin=Urep_tracked;
+        pot.Ec_smin=Uattr_tracked;
+        pot.E_smin=Utot_tracked;
 
-//     double Delta_E=50./sys.beta,s,Uattr,Urep,Utot,dE ;
-//     int x=1000000;       
-//     gprint(pot.E_smin);
-
-//     for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
-//         s=(double)r/(double)x *pot.s_cutoff;
+        printf("    the colloid-colloid distance with minimum energy sys.E_smin=%lf (sys.Ec_smin=%lf, sys.Erep_smin=%lf) is %lf \n", pot.E_smin, pot.Ec_smin, pot.Erep_smin, s_min );
+        pot.s_min=s_min;
+        printf("    found s_min = %lf [sigma]\n", pot.s_min);
         
-//         Urep = potential_repulsive_energy_sdist(s);
-//         Uattr = potential_attractive_energy_sdist(s);
-//         Utot = Urep+Uattr;
-//         // printf(" at distance s=%3.2f Urep==%3.2f +  Uattr=%3.2f  = %3.2f \n",s,Urep,Uattr,Utot);
-//         dE=Utot-pot.E_smin; // dE away from the minimum
-//         if ((Delta_E-dE)>1e-1){
-//             printf(" at distance s=%3.2f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
+        if (pot.s_min>1.0){
+            error("!!define pot.s_min such that the minimum energy and the bond definition ( == 1 procent of minimum ) can be calculated ");
+        }
+        return s_min;
+    }
+}
+double find_overlap_distance(void ){
+    /*looks for the value of s (surface-surface-distance) at which you define the particles to overlap = s_overlap
+    take it as the distance at which the  energy is 22/beta away from the minimum  --> probability of 1 in 4 miljard = exp(-22)
+    */
 
-//             gprint(Delta_E);
-//             gprint(dE);
-//             printf("found the overlap distance  = %lf [sigma]\n", s);    
-//             return s;
+    double Delta_E=50./sys.beta,s,Uattr,Urep,Utot,dE ;
+    int x=1000000;       
+    gprint(pot.E_smin);
 
-//         }
-//     }
-
-//     printf("found the overlap distance  = %lf [sigma]\n", s);
-//     return s;
-
-// }
-// double find_forcecutoff_distance(void ){
-//     /*looks for the value of s (surface-surface-distance) at which you the force is large and may causes the particles to explode
-//     */ 
-
-//     double Delta_E=-pot.E_smin/sys.beta,s,Uattr,Urep,Utot,dE ;
-//     int x=100000;       
-//     gprint(pot.E_smin);
-
-
-//     for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
-//         s=(double)r/(double)x *pot.s_cutoff;
+    for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
+        s=(double)r/(double)x *pot.s_cutoff;
         
-//         Urep = potential_repulsive_energy_sdist(s);
-//         Uattr = potential_attractive_energy_sdist(s);
-//         Utot = Urep+Uattr;
+        Urep = potential_repulsive_energy_sdist(s);
+        Uattr = potential_attractive_energy_sdist(s);
+        Utot = Urep+Uattr;
+        // printf(" at distance s=%3.2f Urep==%3.2f +  Uattr=%3.2f  = %3.2f \n",s,Urep,Uattr,Utot);
+        dE=Utot-pot.E_smin; // dE away from the minimum
+        if ((Delta_E-dE)>1e-1){
+            printf(" at distance s=%3.2f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
 
-//         dE=Utot-pot.E_smin; // dE away from the minimum
-//         if (fabs(Delta_E-dE)<1e-1){
-//             printf(" at distance s=%3.20f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
-//             printf(" at distance s=%3.20f Frep==%3.2f +  Fattr=%3.2f  \n",s,bond_repulsive_force(s),bond_attractive_force(s));
+            gprint(Delta_E);
+            gprint(dE);
+            printf("found the overlap distance  = %lf [sigma]\n", s);    
+            return s;
 
-//             gprint(Delta_E);
-//             gprint(dE);
-//             return s;
-//         }
-//     }
-//     // if there is no such distance, just take s_overlap
-//     return pot.s_overlap;
+        }
+    }
 
-// }
-// void setup_positions_sites(Slice *psl) {
+    printf("found the overlap distance  = %lf [sigma]\n", s);
+    return s;
 
-//     double r2,s;
-//     int ipart, jpart, overlap, wall,n;
-//     vector dr;
-//     Pts *psi, *psj;
-//     double radius_i;
+}
+double find_forcecutoff_distance(void ){
+    /*looks for the value of s (surface-surface-distance) at which you the force is large and may causes the particles to explode
+    */ 
 
-//     read_particletypes(psl);
-//     // print_particle_properties();
+    double Delta_E=-pot.E_smin/sys.beta,s,Uattr,Urep,Utot,dE ;
+    int x=100000;       
+    gprint(pot.E_smin);
 
 
-//     /*place them random; do not put the particle at z=[0,1] if gravity is on*/
-//     if(sys.start_type==0){ 
-//         printf("Randomly placing particles with random orientation and positions\n");
-//         for( ipart=0; ipart<psl->nparts; ipart++) {
-//             psi=&psl->pts[ipart];
-//             radius_i=sys.particletype[psi->ptype].radius;
-//             psi->q=RandomQuaternion();
+    for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
+        s=(double)r/(double)x *pot.s_cutoff;
+        
+        Urep = potential_repulsive_energy_sdist(s);
+        Uattr = potential_attractive_energy_sdist(s);
+        Utot = Urep+Uattr;
 
-//             //give it a random position
-//             do {
-//                 overlap=0;
-//                 psi->r.x=RandomNumberRange(-0.5*sys.boxl.x,0.5*sys.boxl.x);
-//                 psi->r.y=RandomNumberRange(-0.5*sys.boxl.y,0.5*sys.boxl.y);
+        dE=Utot-pot.E_smin; // dE away from the minimum
+        if (fabs(Delta_E-dE)<1e-1){
+            printf(" at distance s=%3.20f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
+            printf(" at distance s=%3.20f Frep==%3.2f +  Fattr=%3.2f  \n",s,bond_repulsive_force(s),bond_attractive_force(s));
 
-//                 if (sys.gravity>0){
-//                     psi->r.z=RandomNumberRange(1.12+radius_i,1.12+2.*radius_i);
-//                 }
-//                 else{ psi->r.z=RandomNumberRange(-0.5*sys.boxl.z,0.5*sys.boxl.z); }
+            gprint(Delta_E);
+            gprint(dE);
+            return s;
+        }
+    }
+    // if there is no such distance, just take s_overlap
+    return pot.s_overlap;
 
-//                 // check for overlap
-//                 for( jpart=0; jpart<ipart; jpart++) {
-//                     psj=&psl->pts[jpart];
-//                     vector_minus(psj->r,psi->r,dr);
-//                     pbc(dr,sys.boxl);
-//                     r2=vector_inp(dr,dr);
+}
 
-//                     s=sqrt(r2)-radius_i-sys.particletype[psj->ptype].radius;
-//                     if(s<pot.s_min*0.9) {
-//                         // printf("overlap\n");
-//                         overlap=1;
-//                     }
-//                 }
-//             } while(overlap==1 );
+void setup_positions_sites(Slice *psl) {
 
-//         } 
-//     }
+    double r2,s,radius_i;
+    int ipart, jpart, overlap, wall,n;
+    vector dr;
+    Pts *psi, *psj;
+    int maxchain_length, mod_ipart; // Declare the variables here
 
-//     /*read from input*/
-//     if(sys.start_type==1) {
-//             printf("Reading from conf.inp\n");
-//             conf_input(&slice[0]);
-//     }
 
-//     /* place them in a chain*/
-//     if(sys.start_type==2 | sys.start_type==3){
-//             printf("Placing %d particles in a chain\n", psl->nparts);
-//             double y_previousparticle=-0.48*sys.boxl.y;
-//             if((double)sys.boxl.x/psl->nparts<=pot.s_min){
-//                 error("ERROR: Too many particles to put in a 1D chain. Adjust boxl or npart!");
-//             }
-//             else{
-//                 printf("pot.s_min = %lf\n", pot.s_min);      
-//                 for( ipart=0; ipart<psl->nparts; ipart++) {
-//                     psi=&psl->pts[ipart]; 
-//                     psi->r=nulvec;
-//                     psi->r.z =1.15+sys.particletype[psi->ptype].radius;
-//                     psi->r.y = y_previousparticle + (sys.particletype[psi->ptype].radius+pot.s_min) ;                    
-//                     psi->q.q0=1.;
-//                     psi->q.q1=0.;
-//                     psi->q.q2=0.;
-//                     psi->q.q3=0.;
-//                     y_previousparticle = psi->r.y+sys.particletype[psi->ptype].radius;
-//                 }
-//             }  
-//     }
-//     else if(sys.start_type==4){
-//         int maxchain_length=floor(psl->nparts/sys.nchains)+1,mod_ipart;
+    read_particletypes(psl);
+    // print_particle_properties();
 
-//         printf("Placing %d particles in %d chains\n", psl->nparts,sys.nchains);
-//         if((double)(sys.boxl.y<=maxchain_length*(pot.s_min+1) )|| (double)(sys.boxl.x)<=sys.chaingap*(sys.nchains)){
-//             printf("ERROR: Too many particles to put in a 1D chain %lf<%lf or %lf<%lf . Adjust boxl or npart! \n", (double)sys.boxl.y,maxchain_length*(pot.s_min+1),sys.boxl.x,sys.chaingap*(sys.nchains+1));
-//             exit(1);
-//         }
-//         else{
-//             // printf("%d = %d/ %d\n", psl->nparts/sys.nchains,psl->nparts,sys.nchains);
-//             // gprint(pot.s_min);
-//             n=0;
-//             // printf("\nnew chain n=%d\n", n);
+    switch (init_conf.start_type) {
+        case 0:   
+            printf("    Randomly place the particles with random orientation and position\n");
+            for (ipart = 0; ipart < psl->nparts; ipart++) {
+                psi = &psl->pts[ipart];
+                radius_i = sys.particletype[psi->ptype].radius;
+                psi->q = RandomQuaternion();
 
-//             for( ipart=0; ipart<psl->nparts; ipart++) {
-//                 mod_ipart=ipart%(maxchain_length+1);
-//                 psi=&psl->pts[ipart]; 
-//                 psi->r.x = -0.48*sys.boxl.x + sys.chaingap*n;
-//                 psi->r.z = 1.13+sys.particletype[psi->ptype].radius;
-//                 psi->r.y = -0.48*sys.boxl.y + (pot.s_min+2.*(sys.particletype[psi->ptype].radius))*mod_ipart ;   
-//                 // printf("psi->r.y = -0.48*sys.boxl.y + pot.s_min+2*(sys.particletype[psi->ptype].radius)*mod_ipart ;\n" );                
-//                 // printf("psi->r.y = -0.48*s%.5lf + %.5lf+2*(%.5lf)*%d ;\n", sys.boxl.y,pot.s_min,sys.particletype[psi->ptype].radius,mod_ipart);                
-//                 psi->q.q0=1.;
-//                 psi->q.q1=0.;
-//                 psi->q.q2=0.;
-//                 psi->q.q3=0.;
-//                 // vprint(psi->r);
-//                 if(ipart%maxchain_length==0 & ipart>0){
-//                     n++;
-//                     // printf("new chain n=%d as ipart modulus sys,nchains =  %d\n",n,ipart%sys.nchains );
+                do {
+                   /*place them randomly; do not put the particle at z=[0,1] if gravity is on*/
+                    overlap = 0;
+                    psi->r.x = RandomNumberRange(-0.5 * sys.boxl.x, 0.5 * sys.boxl.x);
+                    psi->r.y = RandomNumberRange(-0.5 * sys.boxl.y, 0.5 * sys.boxl.y);
 
-//                 }
-//                 // }
-//             }  
-//         }  
-//     }
+                    if (sys.gravity > 0)
+                        psi->r.z = RandomNumberRange(1.12 + radius_i, 1.12 + 2. * radius_i);
+                    else
+                        psi->r.z = RandomNumberRange(-0.5 * sys.boxl.z, 0.5 * sys.boxl.z);
+                    
+                    // check for overlap
+                    for (jpart = 0; jpart < ipart; jpart++) {
+                        psj = &psl->pts[jpart];
+                        vector_minus(psj->r, psi->r, dr);
+                        pbc(dr, sys.boxl);
+                        r2 = vector_inp(dr, dr);
+
+                        s = sqrt(r2) - radius_i - sys.particletype[psj->ptype].radius;
+                        if (s < pot.s_min * 0.9)
+                            overlap = 1;
+                    }
+                } while (overlap == 1);
+            }
+            break;
+        case 1:   
+            /*read from input*/
+            if(init_conf.start_type==1) {
+                    printf("Reading from conf.inp\n");
+                    conf_input(&slice[0]);
+            }
+            break;
+        case 2:
+            /* place them in a chain*/
+            
+            printf("Placing %d particles in single chain\n", psl->nparts);
+            double y_previousparticle=-0.48*sys.boxl.y;
+            if((double)sys.boxl.x/psl->nparts<=pot.s_min){
+                error("ERROR: Too many particles to put in a 1D chain. Adjust boxl or npart!");
+            }
+            else{
+                printf("pot.s_min = %lf\n", pot.s_min);      
+                for( ipart=0; ipart<psl->nparts; ipart++) {
+                    psi=&psl->pts[ipart]; 
+                    psi->r=nulvec;
+                    psi->r.z =1.15+sys.particletype[psi->ptype].radius;
+                    psi->r.y = y_previousparticle + (sys.particletype[psi->ptype].radius+pot.s_min) ;                    
+                    psi->q.q0  =1.;
+                    psi->q.q1 = psi->q.q2 = psi->q.q3 = 0.;
+                    y_previousparticle = psi->r.y+sys.particletype[psi->ptype].radius;
+                }
+            }  
+            break;
+        case 4:
+            // first check if your chains will fit the box
+            maxchain_length=floor(psl->nparts/init_conf.nchains)+1;
+
+            printf("Placing %d particles in %d chains\n", psl->nparts,init_conf.nchains);
+            if((double)(sys.boxl.y<=maxchain_length*(pot.s_min+1) )|| (double)(sys.boxl.x)<=init_conf.chaingap*(init_conf.nchains)){
+                printf("ERROR: Too many particles to put in a 1D chain %lf<%lf or %lf<%lf . Adjust boxl or npart! \n", (double)sys.boxl.y,maxchain_length*(pot.s_min+1),sys.boxl.x,init_conf.chaingap*(init_conf.nchains+1));
+                exit(1);
+            }
+            else{
+                n=0;
+
+                for( ipart=0; ipart<psl->nparts; ipart++) {
+                    mod_ipart=ipart%(maxchain_length+1);
+                    psi=&psl->pts[ipart]; 
+
+                    psi->r.x = -0.48*sys.boxl.x + init_conf.chaingap*n;
+                    psi->r.z = 1.13+sys.particletype[psi->ptype].radius;
+                    psi->r.y = -0.48*sys.boxl.y + (pot.s_min+2.*(sys.particletype[psi->ptype].radius))*mod_ipart ;   
+                    
+                    psi->q.q0=1.;
+                    psi->q.q1=0.;
+                    psi->q.q2=0.;
+                    psi->q.q3=0.;
+                    
+                    if(ipart%maxchain_length==0 & ipart>0) n++;
+                    
+                }  
+            }  
+            break;
+    }
     
-//     printf("Setting the positions for all the particles is done\n");
+    
+    printf("Setting the positions for all the particles is done\n");
 
-//     /*setup al the patch vectors*/
-//     update_patch_vectors(psl);
+    /*setup al the patch vectors*/
+    update_patch_vectors(psl);
 
     
-//     return;
-// }
-// void conf_input(Slice *psl) {
+    return;
+}
 
-//     int ipart, isite,npart,nsites;
-//     vector boxl;
-//     FILE *fp;
+void conf_input(Slice *psl) {
 
-//     if((fp=fopen("conf.inp","r"))==NULL) {;
-//         printf("Warning: can not open conf.inp\n");
-//     }
-//     else {
-//         fscanf(fp,"%d %lf %lf %lf\n", &npart, &boxl.x, &boxl.y, &boxl.z);
-//         for(ipart=0; ipart<npart; ipart++) {
-//             fscanf(fp,"%lf %lf %lf ", &psl->pts[ipart].r.x, &psl->pts[ipart].r.y, &psl->pts[ipart].r.z);
-//             fscanf(fp,"%lf %lf %lf %lf\n", &psl->pts[ipart].q.q0, &psl->pts[ipart].q.q1, &psl->pts[ipart].q.q2, &psl->pts[ipart].q.q3);
+    int ipart, isite,npart,nsites;
+    vector boxl;
+    FILE *fp;
 
-//              /*make sure the quaternions are unit, it could be a liiiiilte bit off due to the print accuracy and it will  lead to |p|!=1 */
-//             psl->pts[ipart].q=  normalize_quat(psl->pts[ipart].q);
-//             pbc(psl->pts[ipart].r,sys.boxl);
-           
+    if((fp=fopen("conf.inp","r"))==NULL) {;
+        printf("Warning: can not open conf.inp\n");
+    }
+    else {
+        fscanf(fp,"%d %lf %lf %lf\n", &npart, &boxl.x, &boxl.y, &boxl.z);
+        for(ipart=0; ipart<npart; ipart++) {
+            fscanf(fp,"%lf %lf %lf ", &psl->pts[ipart].r.x, &psl->pts[ipart].r.y, &psl->pts[ipart].r.z);
+            fscanf(fp,"%lf %lf %lf %lf\n", &psl->pts[ipart].q.q0, &psl->pts[ipart].q.q1, &psl->pts[ipart].q.q2, &psl->pts[ipart].q.q3);
 
-//         }
-//     }
-//     fclose(fp);
+             /*make sure the quaternions are unit, it could be a liiiiilte bit off due to the print accuracy and it will  lead to |p|!=1 */
+            psl->pts[ipart].q=  normalize_quat(psl->pts[ipart].q);
+            pbc(psl->pts[ipart].r,sys.boxl);
+        }
+    }
+    fclose(fp);
 
-//     if(npart!=psl->nparts) {
-//         error("Error: number of particles in system not same as in conf.inp\n");
+    if(npart!=psl->nparts) {
+        error("Error: number of particles in system not same as in conf.inp\n");
         
-//     }
-//     if((boxl.x!=sys.boxl.x) | (boxl.y!=sys.boxl.y) | (boxl.z!=sys.boxl.z)) {
-//         vprint(boxl);
-//         vprint(sys.boxl);
-//         error("Error: boxlength in system not same as in conf.inp\n");
-//     }
+    }
+    if((boxl.x!=sys.boxl.x) | (boxl.y!=sys.boxl.y) | (boxl.z!=sys.boxl.z)) {
+        vprint(boxl);
+        vprint(sys.boxl);
+        error("Error: boxlength in system not same as in conf.inp\n");
+    }
 
-//     return;
-// }
+    return;
+}
 
 // double find_trunc_of_Saccent_1( int ptype){
 //     /* find the angle at which S' is almost zero,i.e. < treshold in an iterative manner*/
@@ -682,8 +678,8 @@ void init_model(Slice *psl) {
 //     /*if bmd or ffs*/
 
 //     // when restarting the simulation, you also need to read in a configuration from file
-//     if ( (sys.restart==1) && (sys.start_type!=1)){ 
-//         error("you are usign a restart time, but sys.start_type!=1. contradicting settings"); 
+//     if ( (sys.restart==1) && (init_conf.start_type!=1)){ 
+//         error("you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
 //     }
 //     if (sys.sim_type==SIM_BMD || sys.sim_type==4){
 //         //do here the force check, you need s_min
@@ -1017,247 +1013,247 @@ void init_model(Slice *psl) {
 
 
 
-// void read_saccent_sfixed_from_pathinp(void){
-//     /*the s_fixed, s_accent are read from path.inp*/
-//     char *pt,line[MAXLINE];
-//     FILE *fp;
-//     char filename[100];
-//     Site *st;
-//     Particletype *pt_type;
+void read_saccent_sfixed_from_pathinp(void){
+    /*the s_fixed, s_accent are read from path.inp*/
+    char *pt,line[MAXLINE];
+    FILE *fp;
+    char filename[100];
+    Site *st;
+    Particletype *pt_type;
 
-//     if((fp = fopen("path.inp","r"))==NULL) {
-//         printf("ERROR: could not read input file\n");
-//         exit(1);
-//     }
+    if((fp = fopen("path.inp","r"))==NULL) {
+        printf("ERROR: could not read input file\n");
+        exit(1);
+    }
     
-//     printf("  reading from path.inp: \n");
+    printf("  reading from path.inp: \n");
    
-//     while(fgets(line,MAXLINE, fp) != NULL) {
-//         pt = strtok(line," ");
-//         // printf("%s\n",line);
-//         if( strcmp(pt,"s_accent")==0) {  
-//            printf("      s_accent  "); 
-//            int n=0;
-//            pt = strtok(NULL," ");
-//            // walk through other tokens 
-//            while( pt != NULL ) {
-//                 st=&site[n];
-//                 sscanf(pt,"%d",&st->s_accent);  // read all s_accents
-//                 pt = strtok(NULL, " ");
-//                 n++;
-//                 if( st->s_accent>3 || st->s_accent<0){
-//                     dprint(st->s_accent);
-//                     error("st->s_accent can only  be 0, 1, 2, or 3 (resp. old, integrated, linear, fixed)  ");
-//                 }
-//            }
-//            if (n!=sys.nparticle_types){
-//                 dprint(n);
-//                 dprint(sys.nparticle_types);
-//                 printf("mind that there cannot be a space behind the variables, that may cause this error: \n");
-//                 error("too many s_accents in path.inp");
-//            }
-//            printf(" ... done \n");
-//         }
-//         else if( strcmp(pt,"S_fixed")==0) {   
-//            printf("      S_fixed "); 
-//            int n=0;
-//            pt = strtok(NULL," ");
-//            // walk through other tokens 
-//            while( pt != NULL ) {
-//                 st=&site[n];
+    while(fgets(line,MAXLINE, fp) != NULL) {
+        pt = strtok(line," ");
+        // printf("%s\n",line);
+        if( strcmp(pt,"s_accent")==0) {  
+           printf("      s_accent  "); 
+           int n=0;
+           pt = strtok(NULL," ");
+           // walk through other tokens 
+           while( pt != NULL ) {
+                st=&site[n];
+                sscanf(pt,"%d",&st->s_accent);  // read all s_accents
+                pt = strtok(NULL, " ");
+                n++;
+                if( st->s_accent>3 || st->s_accent<0){
+                    dprint(st->s_accent);
+                    error("st->s_accent can only  be 0, 1, 2, or 3 (resp. old, integrated, linear, fixed)  ");
+                }
+           }
+           if (n!=sys.nparticle_types){
+                dprint(n);
+                dprint(sys.nparticle_types);
+                printf("mind that there cannot be a space behind the variables, that may cause this error: \n");
+                error("too many s_accents in path.inp");
+           }
+           printf(" ... done \n");
+        }
+        else if( strcmp(pt,"S_fixed")==0) {   
+           printf("      S_fixed "); 
+           int n=0;
+           pt = strtok(NULL," ");
+           // walk through other tokens 
+           while( pt != NULL ) {
+                st=&site[n];
             
-//                 sscanf(pt,"%lf",&st->S_fixed);  // read all S_fixeds 
-//                 pt = strtok(NULL, " ");
-//                 // printf("reading from path.inp the S_fixed n=%d\n",n);
+                sscanf(pt,"%lf",&st->S_fixed);  // read all S_fixeds 
+                pt = strtok(NULL, " ");
+                // printf("reading from path.inp the S_fixed n=%d\n",n);
 
-//                 n++;
-//                 if( st->S_fixed>1 || st->S_fixed<0){
-//                     gprint(st->S_fixed);
-//                     error("st->S_fixed can only be between [0,1] ");
-//                 }
-//            }
-//            if (n!=sys.nparticle_types){
-//                 dprint(n);
-//                 dprint(sys.nparticle_types);
-//                 printf("mind that there cannot be a space behind the variables, that may cause this error: \n");
-//                 error("too many S_fixeds in path.inp");
-//            }
-//            printf(" ... done \n");
+                n++;
+                if( st->S_fixed>1 || st->S_fixed<0){
+                    gprint(st->S_fixed);
+                    error("st->S_fixed can only be between [0,1] ");
+                }
+           }
+           if (n!=sys.nparticle_types){
+                dprint(n);
+                dprint(sys.nparticle_types);
+                printf("mind that there cannot be a space behind the variables, that may cause this error: \n");
+                error("too many S_fixeds in path.inp");
+           }
+           printf(" ... done \n");
 
-//         }
-//     } 
+        }
+    } 
      
-//     fclose(fp);
-//     return;
+    fclose(fp);
+    return;
 
-// }
-// void read_particletypes(Slice *psl){
-//     /*read sites and diameter from particle.inp (used to be sites.inp)*/
-//     /* the file is structured as follows:
-//     NPARTICLE_TYPES
-//     NSITES NPARTICLES DIAMETER DELTA ACTIVITY
-//     SITE_1 
-//     SITE_N
-//     ACTIVITY_VECTOR
-//     etc.
-//     */
-//     FILE *file;
-//     int isite, ptype,a,p,ipart=0;
-//     int amount, totalparticles=0;
-//     vector new;
-//     Particletype *part_type;
-//     Site *st;
-//     double activity_p;
+}
+void read_particletypes(Slice *psl){
+    /*read sites and diameter from particle.inp (used to be sites.inp)*/
+    /* the file is structured as follows:
+    NPARTICLE_TYPES
+    NSITES NPARTICLES DIAMETER DELTA ACTIVITY
+    SITE_1 
+    SITE_N
+    ACTIVITY_VECTOR
+    etc.
+    */
+    FILE *file;
+    int isite, ptype,a,p,ipart=0;
+    int amount, totalparticles=0;
+    vector new;
+    Particletype *part_type;
+    Site *st;
+    double activity_p;
     
 
     
-//     if(sys.particle_setup==1) {
-//         printf("Reading particles setup directly from particles.inp\n");
+    if(init_conf.particle_setup==1) {
+        printf("Reading particles setup directly from particles.inp\n");
         
-//         if ((file = fopen("particles.inp","r"))==NULL){
-//             error("input: can't open particles.inp \n");
-//         }
-//         else {
-//             /*first line of sites.inp contains the number of particle types*/
-//             fscanf(file,"%d\n",&sys.nparticle_types);
-//             if (sys.nparticle_types>PTYPES){
-//                 dprint(sys.nparticle_types);
-//                 dprint(PTYPES);
-//                 error("there is a boundary of maximum number of particle types");
-//             }
+        if ((file = fopen("particles.inp","r"))==NULL){
+            error("input: can't open particles.inp \n");
+        }
+        else {
+            /*first line of sites.inp contains the number of particle types*/
+            fscanf(file,"%d\n",&sys.nparticle_types);
+            if (sys.nparticle_types>PTYPES){
+                dprint(sys.nparticle_types);
+                dprint(PTYPES);
+                error("there is a boundary of maximum number of particle types");
+            }
 
-//             /*such that you know how many to read in*/
-//             for(ptype=0;ptype<sys.nparticle_types; ptype++){
-//                 /*the first line of the particle type contains:
-//                 number of sites, number of particles, diameter in sigma*/
-//                 part_type=&sys.particletype[ptype];
-//                 st=&site[ptype];
+            /*such that you know how many to read in*/
+            for(ptype=0;ptype<sys.nparticle_types; ptype++){
+                /*the first line of the particle type contains:
+                number of sites, number of particles, diameter in sigma*/
+                part_type=&sys.particletype[ptype];
+                st=&site[ptype];
 
-//                 // not put s_accent, and Rp in particles.inp because then the code becomes different form the old format. which might lead to accidental bugs
-//                 // fscanf(file,"\n%d %d %d %lf %lf %lf\n",&part_type->nsites, &part_type->nparticles, &st->s_accent, &part_type->diameter, &st->delta_degree, &activity_p);
-//                 fscanf(file,"\n%d %d %lf %lf %lf\n",&part_type->nsites, &part_type->nparticles, &part_type->diameter, &st->delta_degree, &activity_p);
-//                 part_type->radius=part_type->diameter/2.;
+                // not put s_accent, and Rp in particles.inp because then the code becomes different form the old format. which might lead to accidental bugs
+                // fscanf(file,"\n%d %d %d %lf %lf %lf\n",&part_type->nsites, &part_type->nparticles, &st->s_accent, &part_type->diameter, &st->delta_degree, &activity_p);
+                fscanf(file,"\n%d %d %lf %lf %lf\n",&part_type->nsites, &part_type->nparticles, &part_type->diameter, &st->delta_degree, &activity_p);
+                part_type->radius=part_type->diameter/2.;
 
 
-//                 /*track if all particles have an assigned patch/diameter definition*/
-//                 amount =  part_type->nparticles;
-//                 totalparticles += part_type->nparticles;
-//                 sys.npatch+=(amount*part_type->nsites);
+                /*track if all particles have an assigned patch/diameter definition*/
+                amount =  part_type->nparticles;
+                totalparticles += part_type->nparticles;
+                sys.npatch+=(amount*part_type->nsites);
 
-//                 /*read the sites, and make sure these vectors are unit vectors*/
-//                 for(isite=0; isite<part_type->nsites; isite++) {
-//                     fscanf(file,"%lf %lf %lf\n",
-//                             &new.x,
-//                             &new.y,
-//                             &new.z);
-//                     part_type->site[isite]= check_read_unitvec(new);
-//                 }
+                /*read the sites, and make sure these vectors are unit vectors*/
+                for(isite=0; isite<part_type->nsites; isite++) {
+                    fscanf(file,"%lf %lf %lf\n",
+                            &new.x,
+                            &new.y,
+                            &new.z);
+                    part_type->site[isite]= check_read_unitvec(new);
+                }
                 
-//                 if (activity_p>0){
-//                     part_type->activity=1;
-//                     part_type->active_force.F0=activity_p;
-//                     fscanf(file,"%lf %lf %lf\n",
-//                             &new.x,
-//                             &new.y,
-//                             &new.z);
-//                     part_type->active_force.r=check_read_unitvec(new); 
-//                 }
-//                 do{ /*give the individual particles in the slice a particle type*/
-//                     psl->pts[ipart].ptype = ptype;
+                if (activity_p>0){
+                    part_type->activity=1;
+                    part_type->F_A=activity_p;
+                    fscanf(file,"%lf %lf %lf\n",
+                            &new.x,
+                            &new.y,
+                            &new.z);
+                    part_type->e_A=check_read_unitvec(new); 
+                }
+                do{ /*give the individual particles in the slice a particle type*/
+                    psl->pts[ipart].ptype = ptype;
 
-//                     amount--;
-//                     ipart++;
-//                 }
-//                 while(amount>0 && ipart<psl->nparts);
-//             }
-//             /* check if all particles have an assigned structure (patches and diameter)*/
-//             if(totalparticles!=sys.npart){
-//                 dprint(totalparticles);
-//                 dprint(psl->nparts);
-//                 dprint(sys.npart);
-//                 error("totalparticles  !=psl->nparts  ");
-//             }
-//             fclose(file);
-//         }
+                    amount--;
+                    ipart++;
+                }
+                while(amount>0 && ipart<psl->nparts);
+            }
+            /* check if all particles have an assigned structure (patches and diameter)*/
+            if(totalparticles!=sys.npart){
+                dprint(totalparticles);
+                dprint(psl->nparts);
+                dprint(sys.npart);
+                error("totalparticles  !=psl->nparts  ");
+            }
+            fclose(file);
+        }
 
-//         /* (31-jan_22) in path.inp there is the s_accent listed; its there because of history of the code.
-//          in the previous version of particles.inp, there was no info on s_accent, so I kept it like that to avoid bugs
-//         I recommend to change the code if somebody new is going to use the code. Put S_accent in particles.inp */
-//         read_saccent_sfixed_from_pathinp();
+        /* (31-jan_22) in path.inp there is the s_accent listed; its there because of history of the code.
+         in the previous version of particles.inp, there was no info on s_accent, so I kept it like that to avoid bugs
+        I recommend to change the code if somebody new is going to use the code. Put S_accent in particles.inp */
+        read_saccent_sfixed_from_pathinp();
 
-//         // read the characteristics of the site, e.g. coefficients of switch function; only when s_accent==1
-//         for(ptype=0;ptype<sys.nparticle_types; ptype++){
+        // read the characteristics of the site, e.g. coefficients of switch function; only when s_accent==1
+        for(ptype=0;ptype<sys.nparticle_types; ptype++){
 
-//             st=&site[ptype];
-//             if(st->s_accent!=1){
-//                 continue;
-//             }
-//             char filename[100];
-//             snprintf(   filename, sizeof( filename ), "Scoefficients%d.inp", ptype );
-//             if ((file = fopen(filename,"r"))==NULL){
-//                 printf("input: can't open %s \n",filename);
-//                 error("input: can't open the file \n");
-//             }
-//             else {
-//                 //first indicate if you have Sfixed, Sold or Snew 
-//                 char *pt,line[MAXLINE];
-//                 while(fgets(line,MAXLINE, file) != NULL) {
-//                     pt = strtok(line," ");
-//                     if( strcmp(pt,"switch_expc")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expc);
-//                     } else if( strcmp(pt,"switch_expd")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expd);
-//                     } else if( strcmp(pt,"switch_expe")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expe);
-//                     } else if( strcmp(pt,"switch_expf")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expf);
-//                     } else if( strcmp(pt,"switch_expg")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expg);
-//                     } else if( strcmp(pt,"switch_exph")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_exph);
-//                     } else if( strcmp(pt,"switch_expi")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%lf",&st->s_int.switch_expi);
-//                     } 
-//                     else if( strcmp(pt,"switch_unit")==0) {   
-//                         pt = strtok(NULL," ");
-//                         sscanf(pt,"%d",&st->s_int.switch_unit);
-//                     } 
-//                 }               
-//                 fclose(file);
-//             }
-//         }
+            st=&site[ptype];
+            if(st->s_accent!=1){
+                continue;
+            }
+            char filename[100];
+            snprintf(   filename, sizeof( filename ), "Scoefficients%d.inp", ptype );
+            if ((file = fopen(filename,"r"))==NULL){
+                printf("input: can't open %s \n",filename);
+                error("input: can't open the file \n");
+            }
+            else {
+                //first indicate if you have Sfixed, Sold or Snew 
+                char *pt,line[MAXLINE];
+                while(fgets(line,MAXLINE, file) != NULL) {
+                    pt = strtok(line," ");
+                    if( strcmp(pt,"switch_expc")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expc);
+                    } else if( strcmp(pt,"switch_expd")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expd);
+                    } else if( strcmp(pt,"switch_expe")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expe);
+                    } else if( strcmp(pt,"switch_expf")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expf);
+                    } else if( strcmp(pt,"switch_expg")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expg);
+                    } else if( strcmp(pt,"switch_exph")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_exph);
+                    } else if( strcmp(pt,"switch_expi")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%lf",&st->s_int.switch_expi);
+                    } 
+                    else if( strcmp(pt,"switch_unit")==0) {   
+                        pt = strtok(NULL," ");
+                        sscanf(pt,"%d",&st->s_int.switch_unit);
+                    } 
+                }               
+                fclose(file);
+            }
+        }
         
-//     }
-//     else{
-//         error("sys.particle_setup can only be 1");
-//     }
+    }
+    else{
+        error("init_conf.particle_setup can only be 1");
+    }
 
-//     return;
-// }
+    return;
+}
 
-// vector check_read_unitvec(vector source){
-//     /*used when reading in vectors from particle.inp, check if the vector is a finite size (>0).
-//     it normalizes the vector before saving it*/
-//     /*if the source vector is super small e.g. (0,0,0), it is probably an error*/
-//     vector source_new;
-//     if ( fabs(source.x) <1e-5 && fabs(source.y) <1e-5 && fabs(source.z)<1e-5){
-//         gprint(source.x);
-//         gprint(source.y);
-//         gprint(source.z);
-//         error("patch site not well defined.");
-//     }
-//     /*normalize and return*/
-//     normvec(source,source_new);
+vector check_read_unitvec(vector source){
+    /*used when reading in vectors from particle.inp, check if the vector is a finite size (>0).
+    it normalizes the vector before saving it*/
+    /*if the source vector is super small e.g. (0,0,0), it is probably an error*/
+    vector source_new;
+    if ( fabs(source.x) <1e-5 && fabs(source.y) <1e-5 && fabs(source.z)<1e-5){
+        gprint(source.x);
+        gprint(source.y);
+        gprint(source.z);
+        error("patch site not well defined.");
+    }
+    /*normalize and return*/
+    normvec(source,source_new);
 
-//     return source_new;
-// }
+    return source_new;
+}
 
 // void read_statistics_file(StatsLength *stats_name){
 //     FILE *file;
@@ -1374,9 +1370,9 @@ void init_model(Slice *psl) {
 //     printf("boxl.y            %lf\n", sys.boxl.y);
 //     printf("boxl.z            %lf\n", sys.boxl.z);
 
-//     if(sys.start_type==2 ||sys.start_type==4 ){
-//         printf("nchains           %d\n", sys.nchains);
-//         printf("chaingap x        %lf\n", sys.chaingap);
+//     if(init_conf.start_type==2 ||init_conf.start_type==4 ){
+//         printf("nchains           %d\n", init_conf.nchains);
+//         printf("chaingap x        %lf\n", init_conf.chaingap);
 //     }
 
 //     printf("\nPotential Simon\n");
@@ -1435,8 +1431,8 @@ void init_model(Slice *psl) {
 //             // vprint(part_type->site[s].r);
 //         }
 //         if(part_type->activity==1){
-//             printf("particle has active force with size %lf:\n",part_type->active_force.F0);
-//             printf("   ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->active_force.r.x, part_type->active_force.r.y, part_type->active_force.r.z);
+//             printf("particle has active force with size %lf:\n",part_type->F_A);
+//             printf("   ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->e_A.x, part_type->e_A.y, part_type->e_A.z);
 //         }
 
 
