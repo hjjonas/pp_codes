@@ -1,5 +1,5 @@
-SRCS=	 main.c 
-OBJS=	 main.o 
+SRCS=	 main.c init.c
+OBJS=	 main.o init.o
 
 HFILES = 
 
