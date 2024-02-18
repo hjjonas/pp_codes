@@ -1,5 +1,20 @@
 #include "path.h"
-/* _______________ THE MONTE CARLO ALGORITHM __________________________*/
+/* ___________________ THE MONTE CARLO ALGORITHM __________________________*/
+
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
+void copy_clusterparticles( Slice * ,Slice *,int );
+int check_internal_energy(Slice *,Slice *, int , char [100]);
+int rotate_monocluster(Slice *, int );
+void copy_clusterparticles( Slice * ,Slice *,int );
+int energy_divergence_check(Slice *, char [50]);
+int single_particle_move(Slice *, int );
+int rotatepart_cluster_Ekparts(Slice *);
+int translatepart_cluster_Ekparts(Slice *);
+void propagate_mc( Slice * );
+void cluster_propagate_mc(Slice * );
+void printstatusmc_sub(MC *);
+/*---------------------------------------------------------------------------*/
+
 
 void mccycle(Slice *psl) {
     /*sys.sim_type==2
@@ -30,7 +45,7 @@ void mccycle(Slice *psl) {
 
             /* cluster moves, where nbonds and nclusters is not allowed not change*/
             /* the number of cluster should stay constant during clustermoves due to detailed balance*/
-            if(which<1.){
+            if(which<.05){
                 total_energy(psl); // it's necessary to do total_energy before knowing nbonds 
                 // printf(" clustermoves, starting iwth %d bonds \n ",psl->nbonds);
                 nbonds_before= psl->nbonds;
@@ -45,7 +60,6 @@ void mccycle(Slice *psl) {
 
                     printf("  there are %d clusters \n",psl->nclusters );
                 }
-
                 
                 /* *** the cluster move*** */
                 cluster_propagate_mc(psl);
@@ -81,7 +95,6 @@ void mccycle(Slice *psl) {
                 // printf("after cluster moves\n");
                 check_maxbonds(psl);
             }
-            
             else{
                 total_energy(psl);
                 // printf(" single moves, starting iwth %d bonds \n ",psl->nbonds);
@@ -147,8 +160,6 @@ int single_particle_move(Slice *psl, int r_or_t){
     ipart=(int)(RandomNumber()*psl->nparts);
     
     // old single particle info
-    // printf("Eold %d :\n",ipart);
-    // Eold_tot=total_energy(psl);
     Eold=particle_energy(psl,ipart,0); 
     oldpart=psl->pts[ipart];
 
@@ -156,20 +167,12 @@ int single_particle_move(Slice *psl, int r_or_t){
         error("energy nan in before  single particle move ");
     }
 
-    MC *mc_single; 
-    // DETAILED BALANCE NOT OBEYED WITH THIS STRUCTURE. OR DONT USE OR ADJUST ACCEPTANCE RULE
-    // if the particles has no bonds, give is mc_single_large , the drmax and dq ax are larger
-    // if its bound, these parameres are much smaller
-    // if (psl->pts[ipart].nbonds==0) mc_single=&mc_single_large ;
-    // else mc_single=&mc_single_small ;
-
-    mc_single=&mc_single_small;
 
     if (r_or_t==0){
         // printf("translation  ");
-        mc_single->trans.tries++;
+        mc_single.trans.tries++;
         /*make a random dr vector*/
-        dr=RandomVector(mc_single->drmax);
+        dr=RandomVector(mc_single.drmax);
         if (sys.gravity>0){
             dr.z/=(sys.gravity*10.);
         }
@@ -190,10 +193,10 @@ int single_particle_move(Slice *psl, int r_or_t){
     }
     else{
         // printf("rotation  ");
-        mc_single->rot.tries++;
+        mc_single.rot.tries++;
 
         /*rotate the quaternion*/
-        dq=RandomQuaternionRange(mc_single->dqmax);
+        dq=RandomQuaternionRange(mc_single.dqmax);
         // dq=QuaternionZaxis( 1.);
         rotate_quaternion_ipart(  psl,  ipart,  dq );
     }
@@ -254,11 +257,11 @@ int single_particle_move(Slice *psl, int r_or_t){
 
     /*add acceptance*/
     if (r_or_t==0){
-        mc_single->trans.acc++;
+        mc_single.trans.acc++;
         particle=-1;
     }
     else{
-        mc_single->rot.acc++;
+        mc_single.rot.acc++;
         particle = ipart; //return the particle number for updating dr (nearestneighbor)
     }
 
@@ -291,7 +294,7 @@ void cluster_propagate_mc(Slice *psl){
     //printf("propagating via mc\n");
     for(n=0; n<psl->nparts; n++) {
         nwhich = RandomNumber();
-        if(nwhich<1.) {
+        if(nwhich<.5) {
             icluster = translatepart_cluster_Ekparts(psl);
         }
         else{
@@ -434,7 +437,7 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
 
 
     /*select a cluster randomly*/
-    // icluster=(int)(RandomNumber()*nclusters);
+    icluster=(int)(RandomNumber()*nclusters);
     if (icluster==nclusters) error("icluster==nclusters in rotate cluster ");
     int clusteri_size=cluster.clustersize[icluster];
 
@@ -454,8 +457,6 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
         R = getrotmatrix(dq); 
         mc_cluster.rot.tries++; 
     }
-
-    
 
     /*save old energy, nbonds*/
     for(i=0; i<clusteri_size; i++){
@@ -713,8 +714,7 @@ void printstatusmc() {
         return;
     }
     
-    printstatusmc_sub(&mc_single_large);
-    printstatusmc_sub(&mc_single_small);
+    printstatusmc_sub(&mc_single);
     // printf("The address of mc_single is %p \n",  &mc_single);
     if(sys.cluster_MC==1){
         printstatusmc_sub(&mc_cluster);
@@ -798,8 +798,7 @@ void optimizemc() {
         return;
     }
    
-    optimizemc_sub(&mc_single_large);
-    optimizemc_sub(&mc_single_small);
+    optimizemc_sub(&mc_single);
 
     if(sys.cluster_MC==1){
         optimizemc_sub(&mc_cluster);
@@ -839,16 +838,12 @@ void setup_MC(void){
     copyslice=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
     printf("\nSetting up the MC parameters...\n ");
 
-    sprintf(mc_single_large.name,"single particle large moves");
-    setup_mc_move(&mc_single_large);
+    
+    sprintf(mc_single.name,"single particle");
+    setup_mc_move(&mc_single);
+    mc_single.drmax/=100.;
+    mc_single.dqmax/=10.;
 
-    sprintf(mc_single_small.name,"single particle small moves");
-    setup_mc_move(&mc_single_small);
-    mc_single_small.drmax/=100.;
-    mc_single_small.dqmax/=10.;
-
-    gprint(mc_single_large.drmax);
-    gprint(mc_single_large.dqmax);
     
     if(sys.cluster_MC==1){
         sprintf(mc_cluster.name,"cluster moves");
