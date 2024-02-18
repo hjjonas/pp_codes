@@ -1,10 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-#include <string.h>
+// #include <string.h> // NOTE: if used put it in path.h and remove it here
 #include "path.h"
-
 
 
 
@@ -14,11 +9,11 @@ void setup_simulation() {
     printf("Setting up the system\n\n");
 
     printf("initializing the random numbers\n");
-    // InitializeRandomNumberGenerator(Random_urandom());
-    // printf("Random_urandom() %d \n", Random_urandom());
+    InitializeRandomNumberGenerator(Random_urandom());
+    printf("Random_urandom() %d \n", Random_urandom());
     printf("the time(0l) is %ld\n\n", time(0l));
 
-    // printf("Allocating memory for the slice\n");
+    printf("Allocating memory for the slice\n");
     // slice = (Slice *)calloc(1,sizeof(Slice));
     // start_slice = (Slice *)calloc(1,sizeof(Slice));
     // // memory_allocation();
