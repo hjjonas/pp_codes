@@ -205,37 +205,38 @@ void init_model(Slice *psl) {
     setup_positions_sites(psl);
     printf("done\n");
     
-    // //patchwidth variables
-    // printf("Setting up the patch widths definitions for the particles...");
-    // setup_delta();
-    // printf("done\n");
+    //patchwidth variables
+    printf("Setting up the patch widths definitions for the particles...");
+    setup_delta();
+    printf("done\n");
 
-    // printf("printing potentials ... \n");
-    // plotpotential();
-    // printf("done\n");
+    printf("printing potentials ... \n");
+    plotpotential();
+    printf("done\n");
 
 
-    // /*Calculate the gravitational force fg and correction b_zc*/
-    // if(sys.gravity>0){
-    //     printf("\nSetting GRAVITY PARAMETERS...\n");
-    //     gravitational_parameters();
-    //     printf("done\n");
-    //     double cov=psl->nparts/(sys.boxl.x*sys.boxl.y);
-    //     printf(" the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage ",cov,cov*(PI/4.));
-    // }
+    /*Calculate the gravitational force fg and correction b_zc*/
+    if(sys.gravity>0){
+        printf("\nSetting GRAVITY PARAMETERS...\n");
+        gravitational_parameters();
+        printf("done\n");
+        double coverage=psl->nparts/(sys.boxl.x*sys.boxl.y);
+        printf(" the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage ",coverage,coverage*(PI/4.));
+    }
     
-    // /*rcut^2*/
-    // if (pot.s_cutoff>0.5){
-    //     error("pot.s_cutoff too bit, make it bigger than 0.5");
-    // }
+    /*rcut^2*/
+    if (pot.s_cutoff>0.5){
+        error("pot.s_cutoff too bit, make it bigger than 0.5");
+    }
     
    
-    // /*does sim_type specific definitions*/
-    // init_simtype(psl);
-    // check_input_with_MAXDEFS();
+    /*does sim_type specific definitions*/
+    init_simtype(psl);
+    check_input_with_MAXDEFS();
 
     return;
 }
+
 double find_minimum_of_potential(void){
     /* actually just use deriveative much easier? 
     this code looks for the minimum of the potential by increasing s the surface-surface distance and reading the attractive and repulsive potential
@@ -493,319 +494,295 @@ void conf_input(Slice *psl) {
     return;
 }
 
-// double find_trunc_of_Saccent_1( int ptype){
-//     /* find the angle at which S' is almost zero,i.e. < treshold in an iterative manner*/
-//     double theta, costheta,S_new,treshold=1e-6,max_angle=30.0;
-//     int i,imax=1000000;
+double find_trunc_of_Saccent_1( int ptype){
+    /* find the angle at which S' is almost zero,i.e. < treshold in an iterative manner*/
+    double theta, costheta,S_new,treshold=1e-6,max_angle=30.0;
+    int i,imax=1000000;
 
-//     for(i=0;i<imax; i++){
-//         theta=(double)i/imax*max_angle;
-//         costheta=cos(theta/180.*PI);        
-//         S_new=Saccent(costheta,ptype);
+    for(i=0;i<imax; i++){
+        theta=(double)i/imax*max_angle;
+        costheta=cos(theta/180.*PI);        
+        S_new=Saccent(costheta,ptype);
 
-//         if (S_new<treshold){
-//             return costheta;
-//         }
-//     }
+        if (S_new<treshold){
+            return costheta;
+        }
+    }
     
-//     error("cosdelta not found.");
+    error("cosdelta not found.");
     
-//     return -1;
-// }
+    return -1;
+}
 
-// double find_zcut(double fg){
-//     /*fg_LJ = 4.*pot.epsilongravLJ*(-12.*zcutinv12*zcutinv+6.*zcutinv6*zcutinv);
-//     zcut between 1 and 1.2*/
+double find_zcut(double fg){
+    /*fg_LJ = 4.*pot.epsilongravLJ*(-12.*zcutinv12*zcutinv+6.*zcutinv6*zcutinv);
+    zcut between 1 and 1.2*/
 
-//     int z;
-//     double z_search,zmax=1e8;
-//     double fg_LJ;
-//     double zcutinv, zcutinv2,zcutinv6,zcutinv12;
+    int z;
+    double z_search,zmax=1e8;
+    double fg_LJ;
+    double zcutinv, zcutinv2,zcutinv6,zcutinv12;
 
-//     for(z=0;z<(int)zmax;z++){
-//         z_search = (double)z/zmax*0.2+1.;
-//         zcutinv = 1./z_search;
-//         zcutinv2 = zcutinv*zcutinv;
-//         zcutinv6 = zcutinv2*zcutinv2*zcutinv2;
-//         zcutinv12 = zcutinv6*zcutinv6;
-//         fg_LJ = 4.*pot.epsilongravLJ*(-12.*zcutinv12*zcutinv+6.*zcutinv6*zcutinv);
-//         if(fabs(fg - fg_LJ)<=1e-4){
-//             gprint(fg);
-//             gprint(fg_LJ);
-//             gprint(z_search);
-//             return z_search;
-//         }
-//     }
-//     error("zcut not found");
-//     return 0;
-// }
+    for(z=0;z<(int)zmax;z++){
+        z_search = (double)z/zmax*0.2+1.;
+        zcutinv = 1./z_search;
+        
+        // fg_LJ = 4.*pot.epsilongravLJ*(-12.*zcutinv12*zcutinv+6.*zcutinv6*zcutinv);
+        fg_LJ = 4.0 * pot.epsilongravLJ * (-12.0 * pow(zcutinv, 13) + 6.0 *pow(zcutinv, 7)); 
 
-// void gravitational_parameters(void){
-//     double g,delta_rho_kg_m3,fg_LJ, boltzmann, T, ktsigma;
-//     double zcutinv, zcutinv2,zcutinv6,zcutinv12;
-//     Particletype *ptypen;
-//     double fg,zcut,b_zc,r_micron;
-//     int n;
+
+        if(fabs(fg - fg_LJ)<=1e-4){
+            gprint(fg);
+            gprint(fg_LJ);
+            gprint(z_search);
+            return z_search;
+        }
+    }
+    error("zcut not found");
+    return 0;
+}
+
+void gravitational_parameters(void){
+
+    double rho_mixture,rho_TPM;
+
+    // Constants
+    const double g = 9.80665;                   /*gravitation acceleration of eath [m/s^2]*/
+    const double boltzmann = 1.38064852e-5;     /*joule. the e-5 comes from e-23 *(original value of Boltzmann) times (e-6)^3=e-18 (because in sys.fg we use sys.r_micron^3) */
+    const double T = 33.8 + 273.15;             /*K, this an is approximate for all measurements*/
+    const double ktsigma = boltzmann * T / sys.sigma;
+    // already defined is sys.sigma=3.2e-6; sigma is reducing measure for distance 3.2 mum= the colloidal diameter*/
+
+    //printing the  particle independent paramters
+    printf("boltzmann %.12lf [e-18 joule], T %.12lf [K] ,sigma %.12lf [m]\n", boltzmann, T, sys.sigma);
+    printf("kt/sigma %.12lf \n", ktsigma);
     
+    // Particle-dependent parameters
+    for (int n = 0; n < sys.nparticle_types; n++) {
+        Particletype *ptypen = &sys.particletype[n];
+        double delta_rho_kg_m3;
+        
+        switch (ptypen->nsites) {
+            case 1:
+            case 2:
+                /*  dipatch particles, */
+                delta_rho_kg_m3 = 60.568460120322576;  //the density diffence between the lutide-water solution and the colloid [kg/m^3]
+                break;
+            case 3:
+            case 4:
+                /*  tetrapatch particles*/
+                delta_rho_kg_m3 = 63.5699387858425;
+                break;
+            case NSITES:
+                //isotropic particle
+                rho_mixture = 0.98965956933887; //[g/mL] J. Chem. Phys., Vol. 100, No.1, 1 January 1994 table III
+                rho_TPM = 1.235; // patch material [g/mL] from (non polymerized, see https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5569361/)
+                delta_rho_kg_m3 = (rho_TPM - rho_mixture) * 1000.0; //[g/mL]*1000 = [kg/m^3]
+                break;
+            default:
+                dprint(ptypen->nsites);
+                error("npatch not corresponding to 2 or 4. Indicate delta_rho_kg_m3 in the code");
+        }
+        
+        ptypen->delta_rho_kg_m3 = delta_rho_kg_m3;
+    }
+
+    // Calculate gravity per particle
+    for (int n = 0; n < sys.nparticle_types; n++) {
+        Particletype *ptypen = &sys.particletype[n];
+        double r_micron = ptypen->radius * sys.sigma * 1e6; //the radius of the particle in micron; sigma is given in meter
+        
+        /* V_g = fg*z [kT/sigma*] at 307K*/
+        double fg = 4.0 / 3.0 * PI * pow(r_micron, 3) * ptypen->delta_rho_kg_m3 * g / (ktsigma) * sys.gravity;
+        printf("sys.sigma=%.5lf ,r_micron= %.5lf, fg = %lf [kT/sigma]\n", sys.sigma, r_micron, fg);
+        
+        double zcut = find_zcut(fg);
+        double zcutinv = 1.0 / zcut;
     
-//     // constants
-//     g=9.80665; /*gravitation acceleration of eath [m/s^2]*/
-//     boltzmann=1.38064852e-5; /*joule. the e-5 comes from e-23 *(original value of Boltzmann) times (e-6)^3=e-18 (because in sys.fg we use sys.r_micron^3) */
-//     T=33.8+273.15;/*K, this an is approximate for all measurements*/
-//     // already defined sys.sigma=3.2e-6;/*sigma is reducing measure for distance 3.2 mum= the colloidal diameter*/
+        double fg_LJ = 4.0 * pot.epsilongravLJ * (-12.0 * pow(zcutinv, 13) + 6.0 *pow(zcutinv, 7)); 
 
-//     //some particle indep paramters
-//     ktsigma = (boltzmann * T)/sys.sigma;
-//     printf("boltzmann %.12lf [e-18 joule], T %.12lf [K] ,sigma %.12lf [m]\n", boltzmann,T,sys.sigma);
-//     printf("kt/sigma %.12lf \n",ktsigma);
+        // check if you calculated b_zc at correct point
+        if (fabs(fg - fg_LJ) >= 0.01) {
+            printf("the difference of Fg(line)-fgLJ = %lf -%lf  = %lf", fg , fg_LJ, fg - fg_LJ);
+            error("gravity force not equal at zcut");
+        }
+        /* b_zc should include correction of radius. The wall is at 0 kT and the center of the colloid is then at z=radius+1.12 (1.12 is minimum of LJ) */
+        double b_zc = fg * zcut - 4.0 * pot.epsilongravLJ * ( pow(zcutinv, 12) -  pow(zcutinv, 6) + 1.0 / 4);
+        
+        ptypen->fg = fg;
+        ptypen->zcut = zcut;
+        ptypen->b_zc = b_zc;
+    }
+}
+
+void setup_delta(void){
+    // walk over the particle types and identify what kind of switch function is has, and what the delta cutoff is (i.e. where is S' 0)
+    int ptype;
+    Particletype *part_type;
+    Site *site_type;
+    double mini_costheta=1.;
+
+    for(ptype=0;ptype<sys.nparticle_types; ptype++){
+        part_type=&sys.particletype[ptype];
+        site_type=&site[ptype];
+
+        switch (site_type->s_accent) {
+            case 0: // from R. Guo, J. Mao, X.-M. Xie, and L.-T. Yan, Sci. Rep. 4, 7021 (2015).
+                printf("SWITCHFUNCTION FROM Guo, Sci. Rep. 4, 7021 (2015) \n"); 
+                site_type->cosdelta = cos(site_type->delta_degree / 180. * PI); // theta cutoff
+                site_type->oneover_cosdelta = 1.0 / (1.0 - site_type->cosdelta);
+                break;
+            case 1: // used in J. Chem. Phys. 155, 034902 (2021); doi: 10.1063/5.0055012
+                printf("INTEGRATED SWITCHFUNCTION\n"); 
+                site_type->cosdelta = find_trunc_of_Saccent_1(ptype);
+                site_type->delta_degree = acos(site_type->cosdelta) / PI * 180.;
+                break;
+            case 2: // used in J. Chem. Phys. 157, 094903 (2022); doi: 10.1063/5.0098882
+                printf("LINEAR SWITCHFUNCTION \n"); 
+                site_type->cosdelta = cos(site_type->delta_degree / 180. * PI); // theta cutoff
+                break;
+            case 3: // fixed value for S
+                if (site_type->S_fixed > 0) {
+                    site_type->cosdelta = cos(site_type->delta_degree / 180. * PI);
+                } else {
+                    error("something went wrong in setting up delta (the tresholds of the patch width in e.g. energy calculation.");
+                }
+                break;
+            default:
+                error("Invalid value for s_accent");
+        }
+
+        if (site_type->cosdelta<mini_costheta){
+            mini_costheta = site_type->cosdelta;
+        }
+    }
+
+    return;
+}
+
+void init_simtype(Slice *psl){
+    int  id;
     
-//     //some particle dep paramters
-//     for (n=0;n<sys.nparticle_types;n++){
-//         ptypen=&sys.particletype[n];
-//         if((ptypen->nsites==2 )|| (ptypen->nsites==1)){
-//             ptypen->delta_rho_kg_m3=60.568460120322576 ; /* the density diffence between the lutide-water solution and the colloid [kg/m^3]*/
-//         } 
-//         else if((ptypen->nsites==4 )|| (ptypen->nsites==3)){
-//             ptypen->delta_rho_kg_m3=63.5699387858425;
-//         }
-//         else if(ptypen->nsites==NSITES){ //isotropic particle
-//             double rho_mixture,rho_TPM,delta_rho;
-//             rho_mixture=0.98965956933887;//[g/mL] J. Chem. Phys., Vol. 100, No.1, 1 January 1994 table III
-//             rho_TPM=1.235; // patch material [g/mL] from (non polymerized, see https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5569361/)
-//             ptypen->delta_rho_kg_m3= (rho_TPM-rho_mixture)*1000.; //[g/mL]*1000 = [kg/m^3]
-//         }
-//         else{
-//             dprint(ptypen->nsites);
-//             error("npatch not corresponding to 2 or 4. Indicate delta_rho_kg_m3 in the code");
-//         }
-//     }
 
-//     //calculate the gravity per particle, 
-//     for (n=0;n<sys.nparticle_types;n++){
-//         ptypen=&sys.particletype[n];
-//         //the radius of the particle in micron; sigma is given in meter
-//         r_micron=ptypen->radius*sys.sigma*1e6;
+    // when restarting the simulation, you also need to read in a configuration from file
+    if ( (init_conf.restart==1) && (init_conf.start_type!=1)){ 
+        error("you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
+    }
+
+    switch(sys.sim_type) {
+        case MC_ALGORITHM:
+            // Load modules for Monte Carlo algorithm
+            #include "mc.h"
+            setup_MC();
+            break;
+        case BMD_ALGORITHM:
+            // Load modules for Brownian Dynamics algorithm
+            #include "bmd.h"
+            // setup_BMD();
+            break;
+        case READ_TRAJECTORY:
+            break;
+        default:
+            // through an error
+            dprint(sys.sim_type);
+            dprint(MC_ALGORITHM);
+            dprint(BMD_ALGORITHM);
+            dprint(READ_TRAJECTORY);
+            error("sys.sim_type can only be MC_ALGORITHM,  BMD_ALGORITHM, or READ_TRAJECTORY");
+            break;
+    }
+
+    // if (sys.sim_type==SIM_BMD ){
+
+    //     //do here the force check, you need s_min
+    //     printf("\nChecking the derivatives/forces...");
+    //     derivative_check(psl);
+    //     printf("done\n");
+    //     /*langevin/brownian md parameters*/
+    //     printf("\nDefining the langevin timestep and mobility parameters... ");
+
+    //     // so the input used to read mobility and beta, but its odd. 
+    //     // I changed it to reading in diffusion 13-okt, so mobility is calculated inside the code via beta
+    //     // https://en.wikipedia.org/wiki/Einstein_relation_(kinetic_theory)
+    //     // D = mu*kT = mu/Beta ; thus mu = D*beta
+    //     if (langevin.mobilityT <1e-5 || langevin.mobilityR <1e-5){
+    //         gprint(langevin.mobilityT);
+    //         gprint(langevin.mobilityR);
+    //         error(" the rotational diffusion and/or translational diffusion/mobiilty is close to zero? ");
+    //     }
+    //     langevin.diffusionT= langevin.mobilityT/sys.beta;
+    //     langevin.diffusionR= langevin.mobilityR/sys.beta;
         
+    //     langevin.sqrtmobilityT = sqrt(langevin.mobilityT); //eqn 5,  
+    //     langevin.sqrtmobilityR = sqrt(langevin.mobilityR); // eqn 4 Ilie2015
 
-//         fg = 4./3.*PI* (r_micron*r_micron*r_micron)*ptypen->delta_rho_kg_m3*g/(ktsigma)*sys.gravity; /* V_g = fg*z [kT/sigma*] at 307K*/
-//         printf("sys.sigma=%.5lf ,r_micron= %.5lf, fg = %lf [kT/sigma]\n", sys.sigma,r_micron,fg);
-//         zcut=find_zcut(fg);
-//         zcutinv = 1./(zcut);
-//         zcutinv2 = zcutinv*zcutinv;
-//         zcutinv6 = zcutinv2*zcutinv2*zcutinv2;
-//         zcutinv12 = zcutinv6*zcutinv6;
-
-//         fg_LJ = 4.*pot.epsilongravLJ*(-12.*zcutinv12*zcutinv+6.*zcutinv6*zcutinv);
-//         if(fabs(fg - fg_LJ)>=0.01){
-//             printf("the difference of Fg(line)-fgLJ = %lf -%lf  = %lf", fg , fg_LJ, fg - fg_LJ);
-//             error("gravity force not equal at zcut");
-//         }
-//         /* b_zc should include correction of radius. The wall is at 0 kT and the center of the colloid is then at z=radius+1.12 (1.12 is minimum of LJ) */
-//         b_zc = fg*(zcut) - 4.*pot.epsilongravLJ*(zcutinv12-zcutinv6+1./4) ;
-        
-//         ptypen->fg=fg;
-//         ptypen->zcut=zcut;
-//         ptypen->b_zc=b_zc;
-
-//     }
-
-//     return;
-// }
-
-
-
-
-
-// void setup_delta(void){
-//     // walk over the particle types and identify what kind of switch function is has, and what the delta cutoff is (i.e. where is S' 0)
-//     int ptype;
-//     Particletype *part_type;
-//     Site *site_type;
-//     double mini_costheta=1.;
-
-//     for(ptype=0;ptype<sys.nparticle_types; ptype++){
-//         part_type=&sys.particletype[ptype];
-//         site_type=&site[ptype];
-
-//      // if delta if >0 then use old switch as S'
-//         if (site_type->s_accent==0 ){
-//             printf("OLD SWITCH\n"); // (smooth)
-//             site_type->cosdelta=cos(site_type->delta_degree/180.*PI); // theta cutoff
-//             site_type->oneover_cosdelta = 1.0/(1.0-site_type->cosdelta);
-//         }
-//         else if ( site_type->s_accent==2 ){
-//             printf("LINEAR SWITCH\n");
-//             site_type->cosdelta=cos(site_type->delta_degree/180.*PI); // theta cutoff
-//         }
-//         //if delta<0 (<1e-5) then use integrated switch function
-//         else if (site_type->s_accent==1){ // ctiyicl casimir
-//             printf("NEW SWITCH\n");
-//             site_type->cosdelta=find_trunc_of_Saccent_1(ptype);
-//             site_type->delta_degree= acos(site_type->cosdelta)/PI*180.;
-//         }
-//         else if(site_type->s_accent==3 && site_type->S_fixed>0){
-//             site_type->cosdelta=cos(site_type->delta_degree/180.*PI);
-//         }
-//         else{
-//             error("something went wrong in setting up delta (the tresholds of the patch width in e.g. energy calculation.");
-//         }
-
-//         if (site_type->cosdelta<mini_costheta){
-//             mini_costheta = site_type->cosdelta;
-//         }
-//     }
-
-//     return;
-// }
-
-// void setup_mc_move(MC *mctype){
-//         printf("*****setting up the MC %s ****\n",mctype->name);
-//         mctype->rot.acc=0;
-//         mctype->trans.acc=0;
-//         mctype->fintrans.acc=0;
-//         mctype->finrot.acc=0;
-//         mctype->trans.tries=0;
-//         mctype->fintrans.tries=0;
-//         mctype->rot.tries=0;
-//         mctype->finrot.tries=0;
-
-//         mctype->drmax=1.;
-//         mctype->dqmax=5.;
-//         return;
-// }
-// void init_simtype(Slice *psl){
-//     int  id;
-//     /*if bmd or ffs*/
-
-//     // when restarting the simulation, you also need to read in a configuration from file
-//     if ( (sys.restart==1) && (init_conf.start_type!=1)){ 
-//         error("you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
-//     }
-//     if (sys.sim_type==SIM_BMD || sys.sim_type==4){
-//         //do here the force check, you need s_min
-//         printf("\nChecking the derivatives/forces...");
-//         derivative_check(psl);
-//         printf("done\n");
-//         /*langevin/brownian md parameters*/
-//         printf("\nDefining the langevin timestep and mobility parameters... ");
-
-//         // so the input used to read mobility and beta, but its odd. 
-//         //I changed it to reading in diffusion 13-okt, so mobility is calculated inside the code via beta
-//         //https://en.wikipedia.org/wiki/Einstein_relation_(kinetic_theory)
-//         // D = mu*kT = mu/Beta ; thus mu = D*beta
-//         if (langevin.mobilityT <1e-5 || langevin.mobilityR <1e-5){
-//             gprint(langevin.mobilityT);
-//             gprint(langevin.mobilityR);
-//             error(" the rotational diffusion and/or translational diffusion/mobiilty is close to zero? ");
-//         }
-//         langevin.diffusionT= langevin.mobilityT/sys.beta;
-//         langevin.diffusionR= langevin.mobilityR/sys.beta;
-        
-//         langevin.sqrtmobilityT = sqrt(langevin.mobilityT); //eqn 5,  
-//         langevin.sqrtmobilityR = sqrt(langevin.mobilityR); // eqn 4 Ilie2015
-
-//         langevin.dtD=sqrt(2.0*langevin.timestep*psl->temp);
-//         //langevin.dtBeta=langevin.timestep*psl->beta; // oeeehhh I see that beta is put in here... 
+    //     langevin.dtD=sqrt(2.0*langevin.timestep*psl->temp);
+    //     //langevin.dtBeta=langevin.timestep*psl->beta; // oeeehhh I see that beta is put in here... 
 
         
-//         // depending on the input you give, you determine the ncycle1, langevin.step
-//         if (sys.ncycle1==0){
-//             langevin.step=(int)ceil(langevin.print_time/(langevin.timestep*langevin.ninter));
-//             sys.ncycle1=langevin.total_time/(langevin.step*langevin.timestep*langevin.ninter*sys.ncycle2);
-//         }
-//         else{
-//             langevin.step=100;
-//         }
+    //     // depending on the input you give, you determine the ncycle1, langevin.step
+    //     if (sys.ncycle1==0){
+    //         langevin.step=(int)ceil(langevin.print_time/(langevin.timestep*langevin.ninter));
+    //         sys.ncycle1=langevin.total_time/(langevin.step*langevin.timestep*langevin.ninter*sys.ncycle2);
+    //     }
+    //     else{
+    //         langevin.step=100;
+    //     }
 
-//         if(sys.restart){
-//             restart_read_time(psl);
-//         }
+    //     if(init_conf.restart){
+    //         restart_read_time(psl);
+    //     }
 
-//         if (sys.ncycle1==0 || sys.ncycle2==0 || langevin.step==0 || langevin.ninter==0){
-//             dprint(sys.ncycle1);
-//             dprint(sys.ncycle2);
-//             dprint(langevin.step);
-//             dprint(langevin.ninter);
-//             error(" one of these is zero. stop");
-//         }
+    //     if (sys.ncycle1==0 || sys.ncycle2==0 || langevin.step==0 || langevin.ninter==0){
+    //         dprint(sys.ncycle1);
+    //         dprint(sys.ncycle2);
+    //         dprint(langevin.step);
+    //         dprint(langevin.ninter);
+    //         error(" one of these is zero. stop");
+    //     }
         
-//         if (sys.mc_warmup>0){
-//             sprintf(mc_single_large.name,"single particle large moves");
-//             setup_mc_move(&mc_single_large);
+    //     if (sys.mc_warmup>0){
+    //         sprintf(mc_single_large.name,"single particle large moves");
+    //         setup_mc_move(&mc_single_large);
 
-//             sprintf(mc_single_small.name,"single particle small moves");
-//             setup_mc_move(&mc_single_small);
+    //         sprintf(mc_single_small.name,"single particle small moves");
+    //         setup_mc_move(&mc_single_small);
 
-//         }
+    //     }
 
-//         printf("done\n");
+    //     printf("done\n");
 
-//             /* create the neighbor list here;*/
-//         if(sys.nearest_neighbor==1){
-//             printf("Setting up the neighbor list\n");
-//             setup_nnlist();
-//             printf("making the neighbor\n");
-//             update_nnlist(psl);
-//         }
-//     }
-//     else if(sys.sim_type==SIM_MC) {
-//         //Monte Carlo
-//         // printf("\nSetting up the MC parameters... ");
-//         //Monte Carlo; there is only MC in this code...
-
-//         if (sys.nearest_neighbor==1 & sys.sim_type==SIM_MC ){
-//             error("nearest_neighbor and MC do not go together!");
-//         }
-
-//         psl_old=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
-//         copyslice=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
-//         printf("\nSetting up the MC parameters...\n ");
-
-//         sprintf(mc_single_large.name,"single particle large moves");
-//         setup_mc_move(&mc_single_large);
-
-//         sprintf(mc_single_small.name,"single particle small moves");
-//         setup_mc_move(&mc_single_small);
-//         mc_single_small.drmax/=100.;
-//         mc_single_small.dqmax/=10.;
-
-       
-
-//         gprint(mc_single_large.drmax);
-//         gprint(mc_single_large.dqmax);
-        
-//         if(sys.cluster_MC==1){
-//             sprintf(mc_cluster.name,"cluster moves");
-//             setup_mc_move(&mc_cluster);
-
-//             sprintf(mc_mono.name,"single-particle-clusters moves");
-//             setup_mc_move(&mc_mono);
-//         }  
-//         printf("   .. done\n");  
-//     }
+    //         /* create the neighbor list here;*/
+    //     if(sys.nearest_neighbor==1){
+    //         printf("Setting up the neighbor list\n");
+    //         setup_nnlist();
+    //         printf("making the neighbor\n");
+    //         update_nnlist(psl);
+    //     }
+    // }
 
 
-//     if(cluster.analysis==1){
-//         // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
-//         printf("\nCode performs cluster analysis \n");
-//         printf("the total energy is %lf\n", total_energy(&slice[0]));
-//         printf("now cluster analysis\n");
-//         slice[0].nclusters = cluster_analysis(&slice[0]); 
-//         clustersize_identification(&slice[0]);
+    // if(cluster.analysis==1){
+    //     // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
+    //     printf("\nCode performs cluster analysis \n");
+    //     printf("the total energy is %lf\n", total_energy(&slice[0]));
+    //     printf("now cluster analysis\n");
+    //     slice[0].nclusters = cluster_analysis(&slice[0]); 
+    //     clustersize_identification(&slice[0]);
 
-//         printf("Initial # bonds is %d \n", slice[0].nbonds);
+    //     printf("Initial # bonds is %d \n", slice[0].nbonds);
      
-//         strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
-//         strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
+    //     strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
+    //     strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
 
-//         if(sys.restart){
-//             read_statistics_file(&cluster.size_histogram);
-//             read_statistics_file(&cluster.size_distribution);          
-//         }   
-//     }
+    //     if(init_conf.restart){
+    //         read_statistics_file(&cluster.size_histogram);
+    //         read_statistics_file(&cluster.size_distribution);          
+    //     }   
+    // }
 
-//     return;
-// }
+    return;
+}
 // void restart_read_time(Slice *psl){
 //     // read the last line of the trajectory.xyz (just copy last line to a new file)
 //     // code from https://stackoverflow.com/questions/13790662/c-read-only-last-line-of-a-file-no-loops
@@ -840,176 +817,116 @@ void conf_input(Slice *psl) {
 //     }
 
 // }
-// void plotpotential(void){
-//     FILE *fp;
-//     int i,j,n, t;
-//     double r,s,z, V=0 , V_LJ, rinv, rinv3, rinv6,rinv12,rinv24, V_g, Vrep=0, Vattr=0;
-//     double Eattr=0, Erep=0, E=0;
-//     double theta, costheta,S_old, S_new,S,dS,cosdelta_n; 
-    
-//     int x=1000;
 
-//     if ((fp = fopen("pot.dat","w"))==NULL){
-//         printf("output: can't open pot.dat\n");
-//         return;
-//     }
-//     else {
+void plotpotential(void) {
+    // printing potentials to file
+    FILE *fp_pot, *fp_2nd_der, *fp_force, *fp_switchfunction, *fp_gravity;
+    int i, n;
+    double s, V, Vrep, Vattr;
+    double theta, costheta, cosdelta_n; 
+    
+    // Open files for writing, check for problems opening files
+    if ((fp_pot = fopen("pot.dat","w")) == NULL ||
+        (fp_2nd_der = fopen("2nd_der.dat","w")) == NULL ||
+        (fp_force = fopen("force.dat","w")) == NULL ||
+        (fp_switchfunction = fopen("switchfunction.dat","w")) == NULL ||
+        (sys.gravity > 0 && (fp_gravity = fopen("gravity.dat","w")) == NULL)) {
+        printf("output: can't open file\n");
+        return;
+    }
    
-//         for(i=x/-5;i<x+1; i++){
-//             s=(double)i/(double)x*pot.s_cutoff;
-            
-//             Vrep = potential_repulsive_energy_sdist(s);
-//             Vattr = potential_attractive_energy_sdist(s);
-            
-//             V= (Vrep + Vattr);
-            
-//             fprintf(fp, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);//, E, Erep, Eattr);
-//         }
-//     fclose(fp);
-//     }
-//     if (sys.sim_type==0){ 
-//         if ((fp = fopen("2nd_der.dat","w"))==NULL){
-//             printf("output: can't open 2nd_der.dat\n");
-//             return;
-//         }
-//         else {
-//             // printf("    note: 2nd_der.dat does not include Derjaguin scaling\n");
-
-//             for(i=x/-5;i<x+1; i++){
-//                 s=(double)i/(double)x*pot.s_cutoff;
-                
-//                 Vrep = second_der_Vrep(s);
-//                 Vattr = second_der_Vc(s);
-                          
-//                 V= Vrep + Vattr;
-                
-//                 fprintf(fp, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);//, E, Erep, Eattr);
-//             }
-//         fclose(fp);
-//         }
-    
-//         if ((fp = fopen("force.dat","w"))==NULL){
-//             printf("output: can't open force.dat\n");
-//             return;
-//         }
-//         else {
-//             // printf("    note: force.dat does not include Derjaguin scaling\n");
-
-//             for(i=x/-5;i<x+1; i++){
-//                 s=(double)i/(double)x*pot.s_cutoff;
-                
-//                 Vrep = bond_repulsive_force(s);
-//                 Vattr = bond_attractive_force(s);
-                     
-//                 V= Vrep + Vattr;
-                
-//                 fprintf(fp, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);//, E, Erep, Eattr);
-//             }
-//         fclose(fp);
-//         }
-//     }
+    // Calculate potentials and write to files
+    for (i = -200; i <= 800; i++) {
+        s = (double)i / 1000.0 * pot.s_cutoff;
+        Vrep = potential_repulsive_energy_sdist(s);
+        Vattr = potential_attractive_energy_sdist(s);
+        V = Vrep + Vattr;
+        fprintf(fp_pot, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);
 
 
-//     if ((fp = fopen("switchfunction.dat","w"))==NULL){
-//         printf("output: can't open switchfunction.dat\n");
-//         return;
-//     }
-//     else {
-        
-//         for(i=0;i<1000; i++){
-//             theta=i/1000.*50.0;
-//             costheta=cos(theta/180.*PI);
-//             fprintf(fp, "%30.15lf ",theta);
-//             for(n=0;n<sys.nparticle_types;n++){
-//                 cosdelta_n=site[n].cosdelta;
+        // Calculate potentials for file '2nd_der.dat'
+        Vrep = second_der_Vrep(s);
+        Vattr = second_der_Vc(s);
+        V = Vrep + Vattr;
+        fprintf(fp_2nd_der, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);
 
-//                 if(costheta<cosdelta_n) {
-//                     S=0;
-//                     dS=0;
-//                 }
-//                 else{
-//                     S=Saccent(costheta,n); 
-//                     if (sys.sim_type!=2){
-//                         dS=dSaccent_dcosangle(costheta, n);
-//                     }
-//                     else{
-//                         dS=0;
-//                     }
-//                 }   
-//                 fprintf(fp, "%30.15lf %30.15lf",S,dS);
-//             }
-            
-//             fprintf(fp, "\n");//, E, Erep, Eattr);
-//         }
-//     fclose(fp);
-//     }
+        // Calculate potentials for file 'force.dat'
+        Vrep = bond_repulsive_force(s);
+        Vattr = bond_attractive_force(s);
+        V = Vrep + Vattr;
+        fprintf(fp_force, "%30.15lf %30.15lf %30.15lf %30.15lf\n", s, V, Vrep, Vattr);
+    }
+    fclose(fp_pot);
+    fclose(fp_2nd_der);
+    fclose(fp_force);
 
+    // Calculate switch functions and write to file
+    for (i = 0; i < 1000; i++) {
+        theta = i / 1000.0 * 50.0;
+        costheta = cos(theta / 180.0 * PI);
+        fprintf(fp_switchfunction, "%30.15lf ", theta);
+        for (n = 0; n < sys.nparticle_types; n++) {
+            cosdelta_n = site[n].cosdelta;
+            if (costheta < cosdelta_n) {
+                fprintf(fp_switchfunction, "%30.15lf %30.15lf", 0.0, 0.0);
+            } else {
+                double S = Saccent(costheta, n); 
+                double dS = (sys.sim_type != 2) ? dSaccent_dcosangle(costheta, n) : 0.0;
+                fprintf(fp_switchfunction, "%30.15lf %30.15lf", S, dS);
+            }   
+        }
+        fprintf(fp_switchfunction, "\n");
+    }
+    fclose(fp_switchfunction);
 
-//     if(sys.gravity>0){
-//         if ((fp = fopen("gravity.dat","w"))==NULL){
-//             printf("output: can't open gravity.dat\n");
-//             return;
-//         }
-//         else {
-            
-//             for(i=100;i<1000; i++){
-//                 r=i/1000.*3+1;
-                
-//                 fprintf(fp, "%30.15lf ", r);
-
-//                 for(n=0;n<sys.nparticle_types;n++){
-//                     z=r-sys.particletype[n].radius;
-
-//                     if(z>=sys.particletype[n].zcut){ 
-//                         V_g = sys.particletype[n].fg*z - sys.particletype[n].b_zc ; /*V_g = Fg*z - b*/
-//                     }
-//                     else{
-//                         rinv = 1/z;
-//                         rinv3= rinv*rinv*rinv;
-//                         rinv6=rinv3*rinv3;
-//                         rinv12= rinv6* rinv6;
-//                         rinv24 = rinv12*rinv12;
-//                         V_g = 4*pot.epsilongravLJ*(rinv12-rinv6+1./4); /* LJ12-6 = 4*b(1/r12-1/r6)*/
-//                     }
-
-//                     fprintf(fp, "%30.15lf ", V_g);
-//                 }
-//                 fprintf(fp, "\n");
-//             }
-            
-//         fclose(fp);
-//         }
-//     }
-
-
-//     return;
-// }
+    // Calculate gravity potentials and write to file if gravity is enabled
+    if (sys.gravity > 0) {
+        if (fp_gravity == NULL) {
+            printf("output: can't open gravity.dat\n");
+            return;
+        }
+        for (i = 100; i < 1000; i++) {
+            double r = i / 1000.0 * 3 + 1;
+            fprintf(fp_gravity, "%30.15lf ", r);
+            for (n = 0; n < sys.nparticle_types; n++) {
+                double z = r - sys.particletype[n].radius;
+                /*V_g = Fg*z - b or it is LJ12-6 = 4*b(1/r12-1/r6) depending on z below or above zcut */
+                double V_g = (z >= sys.particletype[n].zcut) ? 
+                             sys.particletype[n].fg * z - sys.particletype[n].b_zc :
+                             4 * pot.epsilongravLJ * (1 / pow(z, 12) - 1 / pow(z, 6) + 0.25);
+                fprintf(fp_gravity, "%30.15lf ", V_g);
+            }
+            fprintf(fp_gravity, "\n");
+        }
+        fclose(fp_gravity);
+    }
+}
    
 
-// void check_input_with_MAXDEFS(){
-//     /*in path.h there are max definitions given. 
-//     Check after reading the input file if any of these max values are crossed*/
+void check_input_with_MAXDEFS(){
+    /*in path.h there are max definitions given. 
+    Check after reading the input file if any of these max values are crossed*/
 
-//     if (sys.npart>NPART){
-//         dprint(sys.npart);
-//         dprint(NPART);
-//         error("sys.npart > NPART");
-//     }
-//     if (sys.nparticle_types>PTYPES){
-//         dprint(sys.nparticle_types);
-//         dprint(PTYPES);
-//         error("sys.nparticle_types > PTYPES");
-//     }
-//     for (int p=0; p<sys.nparticle_types;p++){
-//         if(sys.particletype[p].nsites>NSITES){
-//             error("part_type->nsites > NSITES");
-//         }
-//     }
+    if (sys.npart>NPART){
+        dprint(sys.npart);
+        dprint(NPART);
+        error("sys.npart > NPART");
+    }
+    if (sys.nparticle_types>PTYPES){
+        dprint(sys.nparticle_types);
+        dprint(PTYPES);
+        error("sys.nparticle_types > PTYPES");
+    }
+    for (int p=0; p<sys.nparticle_types;p++){
+        if(sys.particletype[p].nsites>NSITES){
+            error("part_type->nsites > NSITES");
+        }
+    }
     
 
-//     return;
+    return;
 
-// }
+}
 
 
 
