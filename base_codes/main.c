@@ -1,5 +1,8 @@
 #include "path.h"
 
+Slice        *slice, *psl_old, *start_slice, *copyslice;
+System       sys;
+
 
 // The main function of the simulation program
 int main(int argc, char **argv) {
