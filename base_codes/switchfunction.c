@@ -1,5 +1,22 @@
 #include "path.h"
 
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
+double smooth_S(double , int);
+double integrated_S(double, int);
+double linear_S(double , int );
+
+double S0(double ,double );
+double S90(double ,double );
+double S180(double ,double );
+double switch_method_2( double , double , double , int,int);
+
+
+double dSsmooth_dcostheta(double, int  );
+double dSintegrated_dcostheta(double , int );
+double dS0_dcostheta(double, int  ,double, int  );
+double dS180_dcostheta(double, int  ,double, int  );
+double dS90_dcostheta(double, int  ,double, int  );
+/*---------------------------------------------------------------------------*/
 
 double S_value(double cositheta, double cosjtheta,double cos_ijtheta, int ptypei, int ptypej){
     /* the definition of S and S' define the effective switch funciton S;
