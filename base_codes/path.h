@@ -86,16 +86,13 @@ typedef struct particle_type {
 
 typedef struct system_type {
 
-    int          
-                  cluster_MC,
-                  // graphics,
-                  // snapshot,
+    int           cluster_MC, // PUT IN MC STRUCT?
                   ncycle1,
                   ncycle2,
-                  nearest_neighbor, 
-                  npatch,
+                  nearest_neighbor,  // put it in BMD?? not used in MC
+                  npatch,           // in particletype?
                   nparticle_types,
-                  sim_type,
+                  sim_type,       // Identify here if you use MC or BMD or something else
                   npart,
                   switch_method;  //  0 is S0, 1 is S90 l; 2 is S lincomb; this holds for all particles;                  
 
@@ -130,12 +127,25 @@ typedef struct slice_type {
 } Slice;
 
 /*---------------------------------------------------------------------------*/
+/*------------------THE H-FILES----------------------------------------------*/
+
+#include "criticalcasimir.h"
+#include "analysis.h"
+#include "init.h"
+#include "random.h"
+
+/*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
 
 extern Slice        *slice, *psl_old, *start_slice, *copyslice;
 extern System       sys;
-extern Potential     pot;
 
+// in criticalcasimir.h
+extern Potential     pot; 
+
+// in analysis.h
+extern Cluster cluster;
+extern Analysis analysis;
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
 
@@ -148,7 +158,7 @@ extern Potential     pot;
 // extern void ffscycle(int, int);
 // extern void mainloop_for_graphics();
 // extern void emptyfiles();
-// extern void error(char *);
+extern void error(char *);
 // extern double cosangle_to_angle(double );
 // extern int check_nan(double *);
 // extern void update_patch_vector_ipart(Slice *, int );
@@ -156,10 +166,7 @@ extern Potential     pot;
 // extern void free_all_memory(void); 
 // extern void linking_all_cluster(Slice *);
 
-/*---------------------------------------------------------------------------*/
-/*------------------THE H-FILES----------------------------------------------*/
-#include "random.h"
-#include "init.h"
+
 
 /*------------------INLINE SUBSTITUTIONS-------------------------------------*/
 
