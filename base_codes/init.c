@@ -1,6 +1,29 @@
 #include "path.h"
 
 
+/*------------------LOCAL FUNCTIONS------------------------------------*/
+void check_input_with_MAXDEFS(void);
+vector check_read_unitvec(vector );
+double find_forcecutoff_distance(void );
+double find_minimum_of_potential(void);
+double find_trunc_of_Saccent_1(int);
+double find_zcut(double );
+double find_overlap_distance(void);
+void gravitational_parameters(void);
+void init_model(Slice *);
+void init_simtype(Slice *);
+void print_input(Slice *);
+void print_particle_properties(void);
+void read_input(Slice *);
+void setup_delta(void);
+void setup_positions_sites(Slice *);
+void read_particletypes(Slice *);
+void conf_input(Slice *);
+vector check_read_unitvec(vector );
+void read_statistics_file(StatsLength *);
+/*---------------------------------------------------------------------------*/
+
+
 
 void setup_simulation() {
 
@@ -22,21 +45,21 @@ void setup_simulation() {
 
     printf("\nInit the model\n");
     init_model(&slice[0]);
-    // printf("\nInput read from path.inp:\n");
-    // print_input(&slice[0]);
+    printf("\nInput read from path.inp:\n");
+    print_input(&slice[0]);
 
 
-    // if(sys.empty_files==1){
-    //     emptyfiles();
-    // }
+    if(init_conf.empty_files==1){
+        emptyfiles();
+    }
 
-    // //calculates and prints energy, bonding etc
-    // printf("\n   calculating energy and bonding of initial configuration:\n");
-    // terminate_block(&slice[0]);
+    //calculates and prints energy, bonding etc
+    printf("\n   calculating energy and bonding of initial configuration:\n");
+    terminate_block(&slice[0]);
 
 
 
-    // printf("Setting up the system is done\n");
+    printf("Setting up the system is done\n");
 
 
 
@@ -67,8 +90,8 @@ void read_input(Slice *psl) {
         {"nearest_neighbor", &sys.nearest_neighbor, 'd'},
         {"switch_method", &sys.switch_method, 'd'},
         {"beta", &psl->beta, 'f'},
-        {"boxl.x", &sys.boxl.x, 'f'},
-        {"boxl.y", &sys.boxl.y, 'f'},
+        {"boxl", &sys.boxl.x, 'f'},
+        {"boxly", &sys.boxl.y, 'f'},
         {"gravity", &sys.gravity, 'f'},
         // init_conf variables
         {"start_type", &init_conf.start_type, 'd'},
@@ -81,21 +104,22 @@ void read_input(Slice *psl) {
         {"nchains", &init_conf.nchains, 'd'},
         {"chaingap", &init_conf.chaingap, 'f'},
         //      analysis variables 
-        // {"bond_op", &analysis.bond_op, 'd'},
-        // {"print_trajectory", &analysis.print_trajectory, 'd'},
-        // {"bond_tracking", &analysis.bond_tracking, 'd'},
-        // {"rdfanalysis", &analysis.rdfanalysis, 'd'},
-        // {"cluster_analysis", &cluster.analysis, 'd'},
-        // {"adjacency", &analysis.adjacency, 'd'},
-        // {"s_histogram", &analysis.s_distribution, 'd'},
-        //  {"xy_print", &analysis.xy_print, 'd'},
+        {"bond_breakage", &analysis.bond_breakage, 'd'},
+        {"bond_op", &analysis.bond_op, 'd'},
+        {"print_trajectory", &analysis.print_trajectory, 'd'},
+        {"bond_tracking", &analysis.bond_tracking, 'd'},
+        {"rdfanalysis", &analysis.rdfanalysis, 'd'},
+        {"cluster_analysis", &cluster.analysis, 'd'},
+        {"adjacency", &analysis.adjacency, 'd'},
+        {"s_histogram", &analysis.s_distribution, 'd'},
+         {"xy_print", &analysis.xy_print, 'd'},
         // langevin (BMD) variables
-        // {"mobilityT", &langevin.mobilityT, 'f'},
-        // {"mobilityR", &langevin.mobilityR, 'f'},
-        // {"ninter", &langevin.ninter, 'd'},
-        // {"timestep", &langevin.timestep, 'f'},
-        // {"print_time", &langevin.print_time, 'f'},
-        // {"total_time", &langevin.total_time, 'f'},
+        {"mobilityT", &langevin.mobilityT, 'f'},
+        {"mobilityR", &langevin.mobilityR, 'f'},
+        {"ninter", &langevin.ninter, 'd'},
+        {"timestep", &langevin.timestep, 'f'},
+        {"print_time", &langevin.print_time, 'f'},
+        {"total_time", &langevin.total_time, 'f'},
         //      potential variables
         {"epsilongravLJ", &pot.epsilongravLJ, 'f'},
         {"dT", &pot.dT, 'f'},
@@ -219,9 +243,9 @@ void init_model(Slice *psl) {
     if(sys.gravity>0){
         printf("\nSetting GRAVITY PARAMETERS...\n");
         gravitational_parameters();
-        printf("done\n");
+        printf("   done\n");
         double coverage=psl->nparts/(sys.boxl.x*sys.boxl.y);
-        printf(" the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage ",coverage,coverage*(PI/4.));
+        printf("         the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage \n",coverage,coverage*(PI/4.));
     }
     
     /*rcut^2*/
@@ -258,7 +282,6 @@ double find_minimum_of_potential(void){
             Uattr = potential_attractive_energy_sdist(s);
             Utot = Urep+Uattr;
             
-    
             if (Utot<Utot_tracked){
                 s_min=s;
                 Utot_tracked=Utot;
@@ -356,6 +379,8 @@ void setup_positions_sites(Slice *psl) {
     read_particletypes(psl);
     // print_particle_properties();
 
+    // dprint(init_conf.start_type);
+
     switch (init_conf.start_type) {
         case 0:   
             printf("    Randomly place the particles with random orientation and position\n");
@@ -398,7 +423,6 @@ void setup_positions_sites(Slice *psl) {
             break;
         case 2:
             /* place them in a chain*/
-            
             printf("Placing %d particles in single chain\n", psl->nparts);
             double y_previousparticle=-0.48*sys.boxl.y;
             if((double)sys.boxl.x/psl->nparts<=pot.s_min){
@@ -543,7 +567,7 @@ double find_zcut(double fg){
 }
 
 void gravitational_parameters(void){
-
+    // printf("*** gravitational parameters ****");
     double rho_mixture,rho_TPM;
 
     // Constants
@@ -554,8 +578,8 @@ void gravitational_parameters(void){
     // already defined is sys.sigma=3.2e-6; sigma is reducing measure for distance 3.2 mum= the colloidal diameter*/
 
     //printing the  particle independent paramters
-    printf("boltzmann %.12lf [e-18 joule], T %.12lf [K] ,sigma %.12lf [m]\n", boltzmann, T, sys.sigma);
-    printf("kt/sigma %.12lf \n", ktsigma);
+    printf("         boltzmann %.12lf [e-18 joule], T %.12lf [K] ,sigma %.12lf [m]\n", boltzmann, T, sys.sigma);
+    printf("         kt/sigma %.12lf \n", ktsigma);
     
     // Particle-dependent parameters
     for (int n = 0; n < sys.nparticle_types; n++) {
@@ -594,7 +618,7 @@ void gravitational_parameters(void){
         
         /* V_g = fg*z [kT/sigma*] at 307K*/
         double fg = 4.0 / 3.0 * PI * pow(r_micron, 3) * ptypen->delta_rho_kg_m3 * g / (ktsigma) * sys.gravity;
-        printf("sys.sigma=%.5lf ,r_micron= %.5lf, fg = %lf [kT/sigma]\n", sys.sigma, r_micron, fg);
+        printf("         sys.sigma=%.5lf ,r_micron= %.5lf, fg = %lf [kT/sigma]\n", sys.sigma, r_micron, fg);
         
         double zcut = find_zcut(fg);
         double zcutinv = 1.0 / zcut;
@@ -603,7 +627,7 @@ void gravitational_parameters(void){
 
         // check if you calculated b_zc at correct point
         if (fabs(fg - fg_LJ) >= 0.01) {
-            printf("the difference of Fg(line)-fgLJ = %lf -%lf  = %lf", fg , fg_LJ, fg - fg_LJ);
+            printf("         the difference of Fg(line)-fgLJ = %lf -%lf  = %lf", fg , fg_LJ, fg - fg_LJ);
             error("gravity force not equal at zcut");
         }
         /* b_zc should include correction of radius. The wall is at 0 kT and the center of the colloid is then at z=radius+1.12 (1.12 is minimum of LJ) */
@@ -666,18 +690,14 @@ void init_simtype(Slice *psl){
     // when restarting the simulation, you also need to read in a configuration from file
     if ( (init_conf.restart==1) && (init_conf.start_type!=1)){ 
         error("you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
-    }
+    } 
 
     switch(sys.sim_type) {
         case MC_ALGORITHM:
-            // Load modules for Monte Carlo algorithm
-            #include "mc.h"
             setup_MC(); // inside mc.c
             break;
         case BMD_ALGORITHM:
-            // Load modules for Brownian Dynamics algorithm
-            #include "bmd.h"
-            // setup_BMD(); //inside bmd.c
+            setup_BMD(psl); //inside bmd.c
             break;
         case READ_TRAJECTORY:
             break;
@@ -691,131 +711,62 @@ void init_simtype(Slice *psl){
             break;
     }
 
-    // if (sys.sim_type==SIM_BMD ){
 
-    //     //do here the force check, you need s_min
-    //     printf("\nChecking the derivatives/forces...");
-    //     derivative_check(psl);
-    //     printf("done\n");
-    //     /*langevin/brownian md parameters*/
-    //     printf("\nDefining the langevin timestep and mobility parameters... ");
+    if(cluster.analysis==1){
+        // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
+        printf("\nThe code performs cluster analysis \n");
+        printf("      the total energy is %lf\n", total_energy(psl));
+        printf("      now cluster analysis\n");
+        psl->nclusters = cluster_analysis(psl); 
+        clustersize_identification(psl);
 
-    //     // so the input used to read mobility and beta, but its odd. 
-    //     // I changed it to reading in diffusion 13-okt, so mobility is calculated inside the code via beta
-    //     // https://en.wikipedia.org/wiki/Einstein_relation_(kinetic_theory)
-    //     // D = mu*kT = mu/Beta ; thus mu = D*beta
-    //     if (langevin.mobilityT <1e-5 || langevin.mobilityR <1e-5){
-    //         gprint(langevin.mobilityT);
-    //         gprint(langevin.mobilityR);
-    //         error(" the rotational diffusion and/or translational diffusion/mobiilty is close to zero? ");
-    //     }
-    //     langevin.diffusionT= langevin.mobilityT/sys.beta;
-    //     langevin.diffusionR= langevin.mobilityR/sys.beta;
-        
-    //     langevin.sqrtmobilityT = sqrt(langevin.mobilityT); //eqn 5,  
-    //     langevin.sqrtmobilityR = sqrt(langevin.mobilityR); // eqn 4 Ilie2015
-
-    //     langevin.dtD=sqrt(2.0*langevin.timestep*psl->temp);
-    //     //langevin.dtBeta=langevin.timestep*psl->beta; // oeeehhh I see that beta is put in here... 
-
-        
-    //     // depending on the input you give, you determine the ncycle1, langevin.step
-    //     if (sys.ncycle1==0){
-    //         langevin.step=(int)ceil(langevin.print_time/(langevin.timestep*langevin.ninter));
-    //         sys.ncycle1=langevin.total_time/(langevin.step*langevin.timestep*langevin.ninter*sys.ncycle2);
-    //     }
-    //     else{
-    //         langevin.step=100;
-    //     }
-
-    //     if(init_conf.restart){
-    //         restart_read_time(psl);
-    //     }
-
-    //     if (sys.ncycle1==0 || sys.ncycle2==0 || langevin.step==0 || langevin.ninter==0){
-    //         dprint(sys.ncycle1);
-    //         dprint(sys.ncycle2);
-    //         dprint(langevin.step);
-    //         dprint(langevin.ninter);
-    //         error(" one of these is zero. stop");
-    //     }
-        
-    //     if (sys.mc_warmup>0){
-    //         sprintf(mc_single_large.name,"single particle large moves");
-    //         setup_mc_move(&mc_single_large);
-
-    //         sprintf(mc_single_small.name,"single particle small moves");
-    //         setup_mc_move(&mc_single_small);
-
-    //     }
-
-    //     printf("done\n");
-
-    //         /* create the neighbor list here;*/
-    //     if(sys.nearest_neighbor==1){
-    //         printf("Setting up the neighbor list\n");
-    //         setup_nnlist();
-    //         printf("making the neighbor\n");
-    //         update_nnlist(psl);
-    //     }
-    // }
-
-
-    // if(cluster.analysis==1){
-    //     // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
-    //     printf("\nCode performs cluster analysis \n");
-    //     printf("the total energy is %lf\n", total_energy(&slice[0]));
-    //     printf("now cluster analysis\n");
-    //     slice[0].nclusters = cluster_analysis(&slice[0]); 
-    //     clustersize_identification(&slice[0]);
-
-    //     printf("Initial # bonds is %d \n", slice[0].nbonds);
+        printf("      Initial # bonds is %d \n", psl->nbonds);
      
-    //     strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
-    //     strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
+        strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
+        strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
 
-    //     if(init_conf.restart){
-    //         read_statistics_file(&cluster.size_histogram);
-    //         read_statistics_file(&cluster.size_distribution);          
-    //     }   
-    // }
+        if(init_conf.restart){ // read data from files if you want a restart
+            read_statistics_file(&cluster.size_histogram);
+            read_statistics_file(&cluster.size_distribution);          
+        }   
+    }
 
     return;
 }
-// void restart_read_time(Slice *psl){
-//     // read the last line of the trajectory.xyz (just copy last line to a new file)
-//     // code from https://stackoverflow.com/questions/13790662/c-read-only-last-line-of-a-file-no-loops
+void restart_read_time(Slice *psl){
+    // read the last line of the trajectory.xyz (just copy last line to a new file)
+    // code from https://stackoverflow.com/questions/13790662/c-read-only-last-line-of-a-file-no-loops
 
-//     FILE *fd;                               // File pointer
-//     char *pt;                         
-//     char filename[] = "trajectory.xyz";       // file to read
-//     static const long max_len = 150+ 1;  // define the max length of the line to read
-//     char buff[max_len + 1];             // define the buffer and allocate the length
-//     double dummy;
-//     // printf(">>restart_read_time<<\n");
-//     if ((fd = fopen(filename, "rb")) != NULL)  {      // open file. I omit error checks
+    FILE *fd;                               // File pointer
+    char *pt;                         
+    char filename[] = "trajectory.xyz";       // file to read
+    static const long max_len = 150+ 1;  // define the max length of the line to read
+    char buff[max_len + 1];             // define the buffer and allocate the length
+    double dummy;
+    // printf(">>restart_read_time<<\n");
+    if ((fd = fopen(filename, "rb")) != NULL)  {      // open file. I omit error checks
 
-//         fseek(fd, -max_len, SEEK_END);            // set pointer to the end of file minus the length you need. Presumably there can be more than one new line caracter
-//         fread(buff, max_len-1, 1, fd);            // read the contents of the file starting from where fseek() positioned us
-//         fclose(fd);                               // close the file
+        fseek(fd, -max_len, SEEK_END);            // set pointer to the end of file minus the length you need. Presumably there can be more than one new line caracter
+        fread(buff, max_len-1, 1, fd);            // read the contents of the file starting from where fseek() positioned us
+        fclose(fd);                               // close the file
 
-//         buff[max_len-1] = '\0';                   // close the string
-//         char *last_newline = strrchr(buff, '\n'); // find last occurrence of newlinw 
-//         char *last_line = last_newline +1;         // jump to it
+        buff[max_len-1] = '\0';                   // close the string
+        char *last_newline = strrchr(buff, '\n'); // find last occurrence of newlinw 
+        char *last_line = last_newline +1;         // jump to it
 
-//         // printf("captured: [%s]\n", last_line);    // captured: [472977827]
+        // printf("captured: [%s]\n", last_line);    // captured: [472977827]
 
-//         pt = strtok(last_line," ");
-//         sscanf(pt,"%lf",&psl->c_time);
-//         printf("  restart time = %lf [s]\n", psl->c_time);    // captured: [472977827]
-//     }
-//     else{
-//         psl->c_time=0.;
-//         printf(" >>>>>>>WARNING:  trajectory.xyz cannot be read , so restart time = %lf [s]<<<<<\n", psl->c_time); 
+        pt = strtok(last_line," ");
+        sscanf(pt,"%lf",&psl->c_time);
+        printf("  restart time = %lf [s]\n", psl->c_time);    // captured: [472977827]
+    }
+    else{
+        psl->c_time=0.;
+        printf(" >>>>>>>WARNING:  trajectory.xyz cannot be read , so restart time = %lf [s]<<<<<\n", psl->c_time); 
 
-//     }
+    }
 
-// }
+}
 
 void plotpotential(void) {
     // printing potentials to file
@@ -1171,238 +1122,212 @@ vector check_read_unitvec(vector source){
     return source_new;
 }
 
-// void read_statistics_file(StatsLength *stats_name){
-//     FILE *file;
-//     char *pt,line[NPART], filename[100];
-//     int i=0,j=0, dummy;
+void read_statistics_file(StatsLength *stats_name){
+    FILE *file;
+    char *pt,line[NPART], filename[100];
+    int i=0,j=0, dummy;
 
-//     memcpy(filename,stats_name->filename,sizeof(filename));
-//     // printf("filname %s\n", filename);
-//     if ((file = fopen(filename,"r"))==NULL){
-//         printf("%s can't be opened,  statistics are zero\n", filename);
-//     }
-//     else{
-//         printf("reading %s ...", filename);
+    memcpy(filename,stats_name->filename,sizeof(filename));
+    // printf("filname %s\n", filename);
+    if ((file = fopen(filename,"r"))==NULL){
+        printf("%s can't be opened,  statistics are zero\n", filename);
+    }
+    else{
+        printf("reading %s ...", filename);
 
-//         while(fgets(line,1000, file) != NULL) {
-//             sscanf(line,"%d %lf %lf %ld", &dummy, &stats_name->bin[i].mean, &stats_name->bin[i].variance2,&stats_name->bin[i].n);
-//             i++;
-//         }
-//         printf("done\n");
-//     }
+        while(fgets(line,1000, file) != NULL) {
+            sscanf(line,"%d %lf %lf %ld", &dummy, &stats_name->bin[i].mean, &stats_name->bin[i].variance2,&stats_name->bin[i].n);
+            i++;
+        }
+        printf("done\n");
+    }
    
-//     return;
-// }
+    return;
+}
 
 
 
 
-// void check_random(void){
-//     double number;
-//     int bin,nbins=20, histogram[20]={0};
-//     double dbin=1./((double )nbins);
-//     gprint(dbin);
+void check_random(void){
+    // this performs some random numbers and prints the histrogram of it to a file, you can take a look at it if 
+    // all bins have equal probability.
+    double number;
+    int bin,nbins=20, histogram[20]={0};
+    double dbin=1./((double )nbins);
+    gprint(dbin);
 
 
-//     for (int i=0 ; i<1e6 ; i++){
-//         number=RandomNumber();
-//         bin=(int)(number/dbin);
-//         histogram[bin]+=1;
-//         // if (i==0){
-//         //     gprint(number);
-//         //     dprint(bin);
-//         // }
-//     }
+    for (int i=0 ; i<1e6 ; i++){
+        number=RandomNumber();
+        bin=(int)(number/dbin);
+        histogram[bin]+=1;
+    }
 
-//     FILE *fp;
+    FILE *fp;
     
-//     if ((fp = fopen("random_hist.dat","w"))==NULL){
-//         printf("output: can't open random_hist.dat\n");
-//         return;
-//     }
-//     else {
-        
-//         for (int i=0 ; i<nbins ; i++){
-//             fprintf(fp, "%d %lf\n", histogram[i], (double)histogram[i]/1e6);//, E, Erep, Eattr);
-//         }
-//     fclose(fp);
-//     }
-//     return;
+    if ((fp = fopen("random_hist.dat","w"))==NULL){
+        error("output: can't open random_hist.dat");
+    }
+    else {
+        for (int i=0 ; i<nbins ; i++){
+            fprintf(fp, "%d %lf\n", histogram[i], (double)histogram[i]/1e6);//, E, Erep, Eattr);
+        }
+    fclose(fp);
+    }
+    return;
+}
 
-
-// }
-// void print_input(Slice *psl) {
+void print_input(Slice *psl) {
     
     
-//     printf("Simulation\n");
-//     if (sys.read_path){
-//         printf("********* READING FROM TRAJECTORYFILE *********\n");
-//         printf("directorypath       %s\n", sys.directorypath);
+    printf("Simulation\n");
+    if (init_conf.read_path){
+        printf("********* READING FROM TRAJECTORYFILE *********\n");
+        printf("         directorypath       %s\n", init_conf.directorypath);
+    }
+
+    switch(sys.sim_type) {
+        case MC_ALGORITHM:
+            printf("********* MC *********\n");
+            printf("         cluster_MC %d\n", sys.cluster_MC);
+            break;
+        case BMD_ALGORITHM:
+            printf("********* BMD *********\n");
+            printf("         mobilityT       %.15lf\n", langevin.mobilityT);
+            printf("         mobilityR       %.15lf\n", langevin.mobilityR);
+            printf("         timestep        %.1lf [ns] / %.1lf [ps]\n", langevin.timestep*1e9, langevin.timestep*1e12);
+            printf("         ninter           %d\n", langevin.ninter);
+            printf("         nearest_neighbor %d\n", sys.nearest_neighbor);
+            break;
+        case READ_TRAJECTORY:
+            break;
+    }
 
 
-//     }
-//     if(sys.sim_type==0){
-//         printf("********* BMD *********\n");
-//         printf("mobilityT       %.15lf\n", langevin.mobilityT);
-//         printf("mobilityR       %.15lf\n", langevin.mobilityR);
-//         printf("timestep        %.1lf [ns] / %.1lf [ps]\n", langevin.timestep*1e9, langevin.timestep*1e12);
-//         printf("ninter           %d\n", langevin.ninter);
-//         printf("nearest_neighbor %d\n", sys.nearest_neighbor);
-//     }
-//     else if(sys.sim_type==1){
-//         printf("********* TIS + BD *********\n");
-//         printf("mobilityT       %.15lf\n", langevin.mobilityT);
-//         printf("mobilityR       %.15lf\n", langevin.mobilityR);
-//         printf("timestep        %.1lf [ns] / %.1lf [ps]\n", langevin.timestep*1e9, langevin.timestep*1e12);
-//         printf("ninter           %d\n", langevin.ninter);
-//         printf("nearest_neighbor %d\n", sys.nearest_neighbor);
-//     }
-//     else if(sys.sim_type==2){
-//         printf("********* MC *********\n");
-//         printf("cluster_MC %d\n", sys.cluster_MC);
-        
-
-//     }
-//     // else if(sys.sim_type==4){
-//     //     printf("********* FFS *********\n");
-//     //     printf("mobilityT       %.15lf\n", sys.mobilityT);
-//     //     printf("mobilityR       %.15lf\n", sys.mobilityR);
-//     //     printf("timestep        %.1lf [ns] / %.1lf [ps]\n", langevin.timestep*1e9, langevin.timestep*1e12);
-//     //     printf("ninter           %d\n", langevin.ninter);
-//     //     printf("nearest_neighbor %d\n", sys.nearest_neighbor);
-//     // }
+    printf("         ncycle1          %d\n", sys.ncycle1);
+    printf("         ncycle2          %d\n", sys.ncycle2);
 
 
-//     printf("ncycle1          %d\n", sys.ncycle1);
-//     printf("ncycle2          %d\n", sys.ncycle2);
+    printf("\nSystem\n");
+    printf("         mc_warmup         %d \n", init_conf.mc_warmup);
+    printf("         npart             %d\n", psl->nparts);
+    printf("         #particle types   %d\n", sys.nparticle_types);
+    printf("         beta              %lf\n", psl->beta);
+    printf("         boxl.x            %lf\n", sys.boxl.x);
+    printf("         boxl.y            %lf\n", sys.boxl.y);
+    printf("         boxl.z            %lf\n", sys.boxl.z);
 
+    if(init_conf.start_type==2  ){
+        printf("         nchains           %d\n", init_conf.nchains);
+        printf("         chaingap x        %lf\n", init_conf.chaingap);
+    }
 
-//     printf("\nSystem\n");
-//     printf("mc_warmup         %d \n", sys.mc_warmup);
-//     printf("npart             %d\n", psl->nparts);
-//     printf("#particle types   %d\n", sys.nparticle_types);
-//     printf("beta              %lf\n", psl->beta);
-//     printf("boxl.x            %lf\n", sys.boxl.x);
-//     printf("boxl.y            %lf\n", sys.boxl.y);
-//     printf("boxl.z            %lf\n", sys.boxl.z);
-
-//     if(init_conf.start_type==2 ||init_conf.start_type==4 ){
-//         printf("nchains           %d\n", init_conf.nchains);
-//         printf("chaingap x        %lf\n", init_conf.chaingap);
-//     }
-
-//     printf("\nPotential Simon\n");
-//     printf("rwet              %.3lf\n", pot.r_wetting);
-//     printf("surface_charge    %.3lf\n", pot.surface_charge);
-//     printf("dl                %.12lf\n", pot.dl);
-//     printf("dT                %lf\n", pot.dT);
-//     printf("xi(dT)            %.18lf\n", pot.xi);
-//     printf("A(dT)             %.18lf\n", pot.A);
-//     printf("Arep              %.18lf\n", pot.Arep);
-//     printf("s_cutoff           %.3lf\n", pot.s_cutoff);
-//     printf("gravity           %lf\n", sys.gravity);
-//     if (pot.wall_int!=0){
-//         printf("wall_interaction           %lf   if >0 attraction, <0 repulsion; scales equal to gravity\n", pot.wall_int);
-//     }
+    printf("\nPotential critical Casimir\n");
+    printf("         rwet              %.3lf\n", pot.r_wetting);
+    printf("         surface_charge    %.3lf\n", pot.surface_charge);
+    printf("         dl                %.12lf\n", pot.dl);
+    printf("         dT                %lf\n", pot.dT);
+    printf("         xi(dT)            %.18lf\n", pot.xi);
+    printf("         A(dT)             %.18lf\n", pot.A);
+    printf("         Arep              %.18lf\n", pot.Arep);
+    printf("         s_cutoff           %.3lf\n", pot.s_cutoff);
+    printf("         gravity           %lf\n", sys.gravity);
+    if (pot.wall_int!=0){
+        printf("         wall_interaction           %lf   if >0 attraction, <0 repulsion; scales equal to gravity\n", pot.wall_int);
+    }
    
-//     printf("\nParticle Properties:\n");
-//     print_particle_properties();
+    printf("\nParticle Properties:\n");
+    print_particle_properties();
+
+    printf("\nAnalysis\n");
+    printf("         bond_breakage       %d\n", analysis.bond_breakage);
+    printf("         RDF                 %d\n", analysis.rdfanalysis);
+    printf("         xy_print            %d\n", analysis.xy_print);
+    printf("         print_trajectory    %d\n", analysis.print_trajectory);
+    printf("         bond_tracking       %d\n", analysis.bond_tracking);
+    printf("         s_histogram         %d\n", analysis.s_distribution);
+    printf("         cluster_analysis    %d\n", cluster.analysis);
+    printf("         bond def. E         %lf\n", pot.bond_cutoffE);
+
+    printf("\n");
+
+    return;
+}
+
+void print_particle_properties(){
+    int s,n;
+    Particletype *part_type;
+
+     for(n=0;n<sys.nparticle_types;n++){
+        // each particletype also has a site type (may all be the same though)
+        // a particle (yet) cannot have different sites; i.e. all sites on 1 particles are the same
+
+        part_type=&sys.particletype[n];
+        printf("\n* particle_type %d \n",n);
+        printf("         %d particle(s) have %d patche(s) with pw=%.2lf degrees: \n", part_type->nparticles, part_type->nsites, site[n].delta_degree);
+        printf("         and patch vectors :\n" );
+
+        for(s=0; s<part_type->nsites;s++){
+            printf("            ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->site[s].x, part_type->site[s].y, part_type->site[s].z);
+            // vprint(part_type->site[s].r);
+        }
+        if(part_type->activity==1){
+            printf("         particle has active force with size %lf:\n",part_type->F_A);
+            printf("            ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->e_A.x, part_type->e_A.y, part_type->e_A.z);
+        }
 
 
-   
-//     printf("\nAnalysis\n");
-//     printf("bond_breakage       %.2lf\n", analysis.bond_breakage);
-//     printf("RDF                 %d\n", analysis.rdfanalysis);
-//     printf("xy_print            %d\n", analysis.xy_print);
-//     printf("print_trajectory    %d\n", analysis.print_trajectory);
-//     printf("bond_tracking       %d\n", analysis.bond_tracking);
-
-    
-//     printf("s_histogram         %d\n", analysis.s_distribution);
-//     printf("cluster_analysis    %d\n", cluster.analysis);
-//     printf("adjacency printing  %d\n",analysis.adjacency); 
-//     printf("bond average        %lf\n", analysis.bond_avg );
-//     printf("bond def. E         %lf\n", pot.bond_cutoffE);
-
-//     printf("\n");
-
-//     return;
-// }
-
-// void print_particle_properties(){
-//     int s,n;
-//     Particletype *part_type;
-
-//      for(n=0;n<sys.nparticle_types;n++){
-//         // each particletype also has a site type (may all be the same though)
-//         // a particle (yet) cannot have different sites; i.e. all sites on 1 particles are the same
-
-//         part_type=&sys.particletype[n];
-//         printf("\n* particle_type %d \n",n);
-//         printf("%d particle(s) have %d patche(s) with pw=%.2lf degrees: \n", part_type->nparticles, part_type->nsites, site[n].delta_degree);
-//         printf("and patch vectors :\n" );
-
-//         for(s=0; s<part_type->nsites;s++){
-//             printf("   ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->site[s].x, part_type->site[s].y, part_type->site[s].z);
-//             // vprint(part_type->site[s].r);
-//         }
-//         if(part_type->activity==1){
-//             printf("particle has active force with size %lf:\n",part_type->F_A);
-//             printf("   ( %10.5lf  %10.5lf  %10.5lf ) \n", part_type->e_A.x, part_type->e_A.y, part_type->e_A.z);
-//         }
-
-
-//         // here the patch switchi is "old " (from a nature paper, I will look up the citation), or its "new" which means explicit integration 
+        // here the patch switchi is "old " (from a nature paper, I will look up the citation), or its "new" which means explicit integration 
             
-//         if (site[n].s_accent==0){
-//             printf("S old:  ");
-//             printf("Saccent = 0.5*(1.0-cos(PI*[costheta-cosdelta_particle]/[1-cosdelta_particle])) \n");
-//             printf("        = 0.5*(1.0-cos(PI*[costheta-%10.5lf]/%10.5lf)) \n",site[n].cosdelta, site[n].oneover_cosdelta);
-//         }
-//         else if (site[n].s_accent==1){
-//             //see  APPENDIX B.3 of J. Chem. Phys. 155, 034902 (2021); doi: 10.1063/5.0055012  
-//             printf("S integrated:   ");
-//             printf("Saccent = exp[-cx^2 -dx^3 -ex^4 -fx^5 -gx^6 -hx^7 -ix^8] \n");
-//             printf("  c                 %.18lf\n", site[n].s_int.switch_expc);
-//             printf("  d                 %.18lf\n", site[n].s_int.switch_expd);
-//             printf("  e                 %.18lf\n", site[n].s_int.switch_expe);
-//             printf("  f                 %.18lf\n", site[n].s_int.switch_expf);
-//             printf("  g                 %.18lf\n", site[n].s_int.switch_expg);
-//             printf("  h                 %.18lf\n", site[n].s_int.switch_exph);
-//             printf("  i                 %.18lf\n", site[n].s_int.switch_expi);
-//             if (site[n].s_int.switch_unit==0){
-//                 printf("x in degrees\n");
-//             }
-//             else if (site[n].s_int.switch_unit==1){
-//                 printf("x in cosangle\n");
-//             }
-//         }
-//         else if (site[n].s_accent==2){
-//             printf("S linear:   ");
-//             printf("Saccent = 1-x/theta_p \n");
-//             printf("Saccent = 1-x/%5.3lf \n",site[n].delta_degree);
-//         }
-//         else if (site[n].s_accent==3 && (site[n].S_fixed>0 && site[n].S_fixed<=1)){
-//             // you can only make the combination of S-accent=3 and S_fixed > 0 and <=1
-//             printf("S' is fixed and is set to %.2lf\n", site[n].S_fixed );
-//         }
-//         printf("the threshold of calculating S:\n");
-//         printf("  cosdelta          %lf  \n", site[n].cosdelta);
-//         printf("  delta             %lf  \n", site[n].delta_degree);
-//         if(sys.gravity>0){
-//             printf("and gravity parameters:\n");
-//             printf("  gravity factor    %lf \n", sys.gravity);
-//             printf("  zcut              %lf [sigma]\n", part_type->zcut);
-//             printf("  radius            %lf [sigma]\n", part_type->radius);
-//             printf("  Fg                %lf [[kT/sigma]]\n", part_type->fg);
-//             printf("  b_zc              %lf [sigma]\n", part_type->b_zc);
-//         }
+        if (site[n].s_accent==0){
+            printf("         S smooth:  ");
+            printf("         Saccent = 0.5*(1.0-cos(PI*[costheta-cosdelta_particle]/[1-cosdelta_particle])) \n");
+            printf("                 = 0.5*(1.0-cos(PI*[costheta-%10.5lf]/%10.5lf)) \n",site[n].cosdelta, site[n].oneover_cosdelta);
+        }
+        else if (site[n].s_accent==1){
+            //see  APPENDIX B.3 of J. Chem. Phys. 155, 034902 (2021); doi: 10.1063/5.0055012  
+            printf("         S integrated:   ");
+            printf("         Saccent = exp[-cx^2 -dx^3 -ex^4 -fx^5 -gx^6 -hx^7 -ix^8] \n");
+            printf("           c                 %.18lf\n", site[n].s_int.switch_expc);
+            printf("           d                 %.18lf\n", site[n].s_int.switch_expd);
+            printf("           e                 %.18lf\n", site[n].s_int.switch_expe);
+            printf("           f                 %.18lf\n", site[n].s_int.switch_expf);
+            printf("           g                 %.18lf\n", site[n].s_int.switch_expg);
+            printf("           h                 %.18lf\n", site[n].s_int.switch_exph);
+            printf("           i                 %.18lf\n", site[n].s_int.switch_expi);
+            if (site[n].s_int.switch_unit==0){
+                printf("         x in degrees\n");
+            }
+            else if (site[n].s_int.switch_unit==1){
+                printf("         x in cosangle\n");
+            }
+        }
+        else if (site[n].s_accent==2){
+            printf("         S linear:   ");
+            printf("         Saccent = 1-x/theta_p \n");
+            printf("         Saccent = 1-x/%5.3lf \n",site[n].delta_degree);
+        }
+        else if (site[n].s_accent==3 && (site[n].S_fixed>0 && site[n].S_fixed<=1)){
+            // you can only make the combination of S-accent=3 and S_fixed > 0 and <=1
+            printf("         S' is fixed and is set to %.2lf\n", site[n].S_fixed );
+        }
+        printf("         the threshold of calculating S:\n");
+        printf("           cosdelta          %lf  \n", site[n].cosdelta);
+        printf("           delta             %lf  \n", site[n].delta_degree);
+        if(sys.gravity>0){
+            printf("         and gravity parameters:\n");
+            printf("           gravity factor    %lf \n", sys.gravity);
+            printf("           zcut              %lf [sigma]\n", part_type->zcut);
+            printf("          radius            %lf [sigma]\n", part_type->radius);
+            printf("          Fg                %lf [[kT/sigma]]\n", part_type->fg);
+            printf("           b_zc              %lf [sigma]\n", part_type->b_zc);
+        }
         
-//     }
-//     printf("switch_method      %d (0 is S0, 1 is S90, 2 is lincomb, 3 is linear)\n\n", sys.switch_method);
+    }
+    printf("         switch_method      %d (0 is S0, 1 is S90, 2 is lincomb, 3 is linear)\n\n", sys.switch_method);
     
-//    return;
-// }
+   return;
+}
 
 
 
