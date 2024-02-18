@@ -1,4 +1,3 @@
-// #include <string.h> // NOTE: if used put it in path.h and remove it here
 #include "path.h"
 
 
@@ -14,12 +13,12 @@ void setup_simulation() {
     printf("the time(0l) is %ld\n\n", time(0l));
 
     printf("Allocating memory for the slice\n");
-    // slice = (Slice *)calloc(1,sizeof(Slice));
-    // start_slice = (Slice *)calloc(1,sizeof(Slice));
+    slice = (Slice *)calloc(1,sizeof(Slice));
+    start_slice = (Slice *)calloc(1,sizeof(Slice));
     // // memory_allocation();
 
-    // printf("\nReading the input\n");
-    // read_input(&slice[0]);
+    printf("\nReading the input\n");
+    read_input(&slice[0]);
 
     // printf("\nInit the model\n");
     // init_model(&slice[0]);
@@ -45,210 +44,205 @@ void setup_simulation() {
 }
 
 
-// #define MAXLINE 500
-// void read_input(Slice *psl) {
+#define MAXLINE 500
+void read_input(Slice *psl) {
 
-//     FILE *fp;
-//     char *pt,line[MAXLINE];
+    FILE *fp;
+    char *pt,line[MAXLINE];
 
 
-//     sprintf( sys.directorypath,"."); // this is used to give the path to e.g. trajectory.xyz 
-//     if((fp = fopen("path.inp","r"))==NULL) {
-//         printf("ERROR: could not read input file\n");
-//         exit(1);
-//     }
+    sprintf( init_conf.directorypath,"."); // this is used to give the path to e.g. trajectory.xyz 
+    if((fp = fopen("path.inp","r"))==NULL) {
+        printf("ERROR: could not read input file\n");
+        exit(1);
+    }
 
-//     printf("\nReading input from path.inp\n");
+    printf("\nReading input from path.inp\n");
 
-//     while(fgets(line,MAXLINE, fp) != NULL) {
-//         pt = strtok(line," ");
-//         if( strcmp(pt,"sim_type")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.sim_type);
-//         } else if( strcmp(pt,"bond_breakage")==0) { // strcmp=stringcompare
-//             pt = strtok(NULL," "); //The C library function char *strtok(char *str, const char *delim) breaks string str into a series of tokens using the delimiter delim.
-//             sscanf(pt,"%lf",&analysis.bond_breakage);
-//         } else if( strcmp(pt,"start_type")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.start_type);
-//         } else if( strcmp(pt,"read_path")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.read_path);
-//         } else if( strcmp(pt,"directorypath")==0) {
-//             pt = strtok(NULL," ");
-//             // printf("%s",pt);
-//             sscanf(pt,"%s",sys.directorypath);
-//             // printf("the directorypath is %s\n",sys.directorypath);
-//         } else if( strcmp(pt,"mc_warmup")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.mc_warmup);
-//         } else if( strcmp(pt,"particle_setup")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.particle_setup);
-//         } else if(strcmp(pt,"ncycle1")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.ncycle1);
-//         } else if( strcmp(pt,"ncycle2")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.ncycle2);
-//         } else if( strcmp(pt,"graphics")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.graphics);
-//         } else if( strcmp(pt,"bond_op")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.bond_op);
-//         } else if( strcmp(pt,"cluster_MC")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.cluster_MC);
-//         } else if( strcmp(pt,"nearest_neighbor")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.nearest_neighbor);
-//         } else if( strcmp(pt,"mobilityT")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&langevin.mobilityT);
-//         } else if( strcmp(pt,"mobilityR")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&langevin.mobilityR);
-//         } else if( strcmp(pt,"ninter")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&langevin.ninter);
-//         } else if( strcmp(pt,"timestep")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&langevin.timestep);
-//         } else if( strcmp(pt,"print_time")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&langevin.print_time);
-//         } else if( strcmp(pt,"total_time")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&langevin.total_time);
-//         } else if( strcmp(pt,"restart")==0) { // restart from this timestamp
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.restart); 
-//         } else if( strcmp(pt,"print_trajectory")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.print_trajectory);
-//         } else if( strcmp(pt,"bond_tracking")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.bond_tracking);
-//         } else if( strcmp(pt,"rdfanalysis")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.rdfanalysis);
-//         } else if( strcmp(pt,"cluster_analysis")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&cluster.analysis);
-//         } else if( strcmp(pt,"adjacency")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.adjacency);
-//         } else if( strcmp(pt,"s_histogram")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.s_distribution);
-//         } else if( strcmp(pt,"empty_files")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.empty_files);
-//         } else if( strcmp(pt,"xy_print")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&analysis.xy_print);
-//         } else if( strcmp(pt,"gravity")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&sys.gravity);
-//         }  
-//         else if( strcmp(pt,"epsilongravLJ")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.epsilongravLJ);
-//         } 
-//         else if( strcmp(pt,"switch_method")==0) { // these in site1.inp (with number)
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.switch_method);
-//         }        
-//         else if( strcmp(pt,"dT")==0) {   
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.dT);
-//         } else if( strcmp(pt,"r_wetting")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.r_wetting);
-//         } else if( strcmp(pt,"surface_charge")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.surface_charge);
-//         } else if( strcmp(pt,"wall_int")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.wall_int);
-//         } else if( strcmp(pt,"npart")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.npart);
-//         } else if( strcmp(pt,"s_cutoff")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&pot.s_cutoff);
-//         } else if( strcmp(pt,"beta")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&psl->beta);
-//         } else if( strcmp(pt,"boxl")==0) { //boxlx is not read as boxlx, because of old inputfiles using boxl
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&sys.boxl.x);
-//         } else if( strcmp(pt,"boxly")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&sys.boxl.y);
-//         } else if( strcmp(pt,"nchains")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%d",&sys.nchains);
-//         } else if( strcmp(pt,"chaingap")==0) {
-//             pt = strtok(NULL," ");
-//             sscanf(pt,"%lf",&sys.chaingap);
-//         } 
-//         else if( strcmp(pt,"\n")==0) {
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"SIMULATION\n")==0) {
-//             printf("Reading simulation parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"GRAPHICS\n")==0) {
-//             printf("Reading graphics parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"MC\n")==0) {
-//             printf("Reading MC parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"BMD\n")==0) {
-//             printf("Reading BMD parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"HARMONIC_OSCILLATOR\n")==0) {
-//             printf("Reading HARMONIC parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"FFS\n")==0) {
-//             printf("Reading FFS parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"ANALYSIS\n")==0) {
-//             printf("Reading Analysis parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"GRAVITY\n")==0) {
-//             printf("Reading gravity parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"SWITCH_FUNCTION\n")==0) {
-//             printf("Reading switch function parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"Simons_Potential\n")==0) {
-//             printf("Reading potential parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"SYSTEM\n")==0) {
-//             printf("Reading system parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"K\n")==0) {
-//             printf("Reading K parameters\n");
-//             pt = strtok(NULL," ");
-//         } else if( strcmp(pt,"TIS\n")==0) {
-//             printf("Reading TIS parameters\n");
-//         } else if( strcmp(pt,"\n")==0) {
-//             // pt = strtok(NULL," ");
-//         } else {
-//             printf("Keyword unknown: %s\n",pt);
-//         }
-//     }
+    while(fgets(line,MAXLINE, fp) != NULL) {
+        pt = strtok(line," ");
+        if( strcmp(pt,"sim_type")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&sys.sim_type);
+        // } else if( strcmp(pt,"bond_breakage")==0) { // strcmp=stringcompare
+        //     pt = strtok(NULL," "); //The C library function char *strtok(char *str, const char *delim) breaks string str into a series of tokens using the delimiter delim.
+        //     sscanf(pt,"%lf",&analysis.bond_breakage);
+        } else if( strcmp(pt,"start_type")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&init_conf.start_type);
+        } else if( strcmp(pt,"read_path")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&init_conf.read_path);
+        } else if( strcmp(pt,"directorypath")==0) {
+            pt = strtok(NULL," ");
+            // printf("%s",pt);
+            sscanf(pt,"%s",init_conf.directorypath);
+            // printf("the directorypath is %s\n",sys.directorypath);
+        } else if( strcmp(pt,"mc_warmup")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&init_conf.mc_warmup);
+        } else if( strcmp(pt,"particle_setup")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&init_conf.particle_setup);
+        } else if(strcmp(pt,"ncycle1")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&sys.ncycle1);
+        } else if( strcmp(pt,"ncycle2")==0) {
+            pt = strtok(NULL," ");
+            sscanf(pt,"%d",&sys.ncycle2);
+        // } else if( strcmp(pt,"bond_op")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.bond_op);
+        // } else if( strcmp(pt,"cluster_MC")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.cluster_MC);
+        // } else if( strcmp(pt,"nearest_neighbor")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.nearest_neighbor);
+        // } else if( strcmp(pt,"mobilityT")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&langevin.mobilityT);
+        // } else if( strcmp(pt,"mobilityR")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&langevin.mobilityR);
+        // } else if( strcmp(pt,"ninter")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&langevin.ninter);
+        // } else if( strcmp(pt,"timestep")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&langevin.timestep);
+        // } else if( strcmp(pt,"print_time")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&langevin.print_time);
+        // } else if( strcmp(pt,"total_time")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&langevin.total_time);
+        // } else if( strcmp(pt,"restart")==0) { // restart from this timestamp
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.restart); 
+        // } else if( strcmp(pt,"print_trajectory")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.print_trajectory);
+        // } else if( strcmp(pt,"bond_tracking")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.bond_tracking);
+        // } else if( strcmp(pt,"rdfanalysis")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.rdfanalysis);
+        // } else if( strcmp(pt,"cluster_analysis")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&cluster.analysis);
+        // } else if( strcmp(pt,"adjacency")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.adjacency);
+        // } else if( strcmp(pt,"s_histogram")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.s_distribution);
+        // } else if( strcmp(pt,"empty_files")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.empty_files);
+        // } else if( strcmp(pt,"xy_print")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&analysis.xy_print);
+        // } else if( strcmp(pt,"gravity")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&sys.gravity);
+        // }else if( strcmp(pt,"epsilongravLJ")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.epsilongravLJ);
+        // }else if( strcmp(pt,"switch_method")==0) { // these in site1.inp (with number)
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.switch_method);
+        // }        
+        // else if( strcmp(pt,"dT")==0) {   
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.dT);
+        // } else if( strcmp(pt,"r_wetting")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.r_wetting);
+        // } else if( strcmp(pt,"surface_charge")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.surface_charge);
+        // } else if( strcmp(pt,"wall_int")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.wall_int);
+        // } else if( strcmp(pt,"npart")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.npart);
+        // } else if( strcmp(pt,"s_cutoff")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&pot.s_cutoff);
+        // } else if( strcmp(pt,"beta")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&psl->beta);
+        // } else if( strcmp(pt,"boxl")==0) { //boxlx is not read as boxlx, because of old inputfiles using boxl
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&sys.boxl.x);
+        // } else if( strcmp(pt,"boxly")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&sys.boxl.y);
+        // } else if( strcmp(pt,"nchains")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%d",&sys.nchains);
+        // } else if( strcmp(pt,"chaingap")==0) {
+        //     pt = strtok(NULL," ");
+        //     sscanf(pt,"%lf",&sys.chaingap);
+        // } 
+        // else if( strcmp(pt,"\n")==0) {
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"SIMULATION\n")==0) {
+        //     printf("Reading simulation parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"GRAPHICS\n")==0) {
+        //     printf("Reading graphics parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"MC\n")==0) {
+        //     printf("Reading MC parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"BMD\n")==0) {
+        //     printf("Reading BMD parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"HARMONIC_OSCILLATOR\n")==0) {
+        //     printf("Reading HARMONIC parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"FFS\n")==0) {
+        //     printf("Reading FFS parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"ANALYSIS\n")==0) {
+        //     printf("Reading Analysis parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"GRAVITY\n")==0) {
+        //     printf("Reading gravity parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"SWITCH_FUNCTION\n")==0) {
+        //     printf("Reading switch function parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"Simons_Potential\n")==0) {
+        //     printf("Reading potential parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"SYSTEM\n")==0) {
+        //     printf("Reading system parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"K\n")==0) {
+        //     printf("Reading K parameters\n");
+        //     pt = strtok(NULL," ");
+        // } else if( strcmp(pt,"TIS\n")==0) {
+        //     printf("Reading TIS parameters\n");
+        // } else if( strcmp(pt,"\n")==0) {
+        //     // pt = strtok(NULL," ");
+        } else {
+            printf("Keyword unknown: %s\n",pt);
+        }
+    }
 
-//     psl->nparts=sys.npart;
-//     sys.beta=psl->beta;
-//     fclose(fp);
+    psl->nparts=sys.npart;
+    sys.beta=psl->beta;
+    fclose(fp);
     
-//     printf("Done reading path.inp\n");
+    printf("Done reading path.inp\n");
 
-//     return;
-// }
+    return;
+}
 
 
 // void init_model(Slice *psl) {
