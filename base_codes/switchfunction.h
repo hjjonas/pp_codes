@@ -3,15 +3,12 @@
 #ifndef SWITCH_H
 #define SWITCH_H
 
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL VARIABLES-----------------------------------------*/
-
-
 /*---------------------------------------------------------------------------*/
-/*------------------STRUCTURE DEFINITIONS------------------------------------*/
 
+/*------------------STRUCTURE DEFINITIONS------------------------------------*/
 typedef struct saccentint_type {
-  /*parameters for the integrated Saccent*/
+    /*parameters for the integrated Saccent*/
     // swithci_unit used to be switch_variable, watch out with path.inp!
   int             switch_unit;  //0 if the paramters in angles and 1 if in cosangle (only type 1)
 
@@ -40,38 +37,18 @@ typedef struct site_type {
                   oneover_cosdelta,  /*used if s_accent==0 */
                   oneover_cosdeltarev;       /*used if s_accent==0 */  
 } Site;
-
 /*---------------------------------------------------------------------------*/
-/*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 
-/*switchfunction.c*/
+/*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 extern double S_value(double , double ,double,int, int);
 extern double Saccent(double , int  );
+extern double dSaccent_dcosangle(double, int );
 extern double dS_dcostheta(Slice *, double , int , double , int  );
-
 /*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------------*/
-double smooth_S(double , int);
-double integrated_S(double, int);
-double linear_S(double , int );
 
-double S0(double ,double );
-double S90(double ,double );
-double S180(double ,double );
-double switch_method_2( double , double , double , int,int);
-
-double dSaccent_dcosangle(double, int );
-double dSsmooth_dcostheta(double, int  );
-double dSintegrated_dcostheta(double , int );
-double dS0_dcostheta(double, int  ,double, int  );
-double dS180_dcostheta(double, int  ,double, int  );
-double dS90_dcostheta(double, int  ,double, int  );
-
-
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL STRUCTURES-----------------------------------------*/
-
 Site site[NSITES];
+/*---------------------------------------------------------------------------*/
 
 
 

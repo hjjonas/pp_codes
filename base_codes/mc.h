@@ -3,10 +3,7 @@
 #ifndef MC_H
 #define MC_H
 
-
-/*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
-
 typedef struct mcmove_type {
   //these are the different mc move types 
       // each MC type . i.e. single particle or cluster moves rotation or translation , has this structure
@@ -33,41 +30,23 @@ typedef struct MC_type {
                     dqmax; //degrees 
 
 } MC;
-
 /*---------------------------------------------------------------------------*/
+
 /*------------------GLOBAL VARIABLES-----------------------------------------*/
-
- 
-
 /*---------------------------------------------------------------------------*/
+
 /*------------------GLOBAL FUNCTIONS-----------------------------------------*/
 extern void mccycle(Slice *);
 extern void setup_MC(void);
 extern void optimizemc( );
 extern void printstatusmc();
 extern void final_printstatusmc_sub(MC );
-
-
+extern void setup_mc_move(MC *);
 /*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------------*/
-void copy_clusterparticles( Slice * ,Slice *,int );
-int check_internal_energy(Slice *,Slice *, int , char [100]);
-void setup_mc_move(MC *);
-int rotate_monocluster(Slice *, int );
-void copy_clusterparticles( Slice * ,Slice *,int );
-int energy_divergence_check(Slice *, char [50]);
-int single_particle_move(Slice *, int );
-int rotatepart_cluster_Ekparts(Slice *);
-int translatepart_cluster_Ekparts(Slice *);
 
-void propagate_mc( Slice * );
-void cluster_propagate_mc(Slice * );
-
-void printstatusmc_sub(MC *);
-
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL STRUCTURES-----------------------------------------*/
-MC  mc_single_large, mc_single_small, mc_cluster, mc_mono, mc_tailflip;
+MC  mc_single, mc_cluster, mc_mono, mc_tailflip;
+/*---------------------------------------------------------------------------*/
 
 
 

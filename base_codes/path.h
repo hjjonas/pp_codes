@@ -139,15 +139,14 @@ typedef struct slice_type {
 #include "criticalcasimir.h"
 #include "storage.h"
 #include "analysis.h"
+#include "constructnn.h"
 #include "init.h"
 #include "random.h"
 #include "quaternion.h"
 #include "switchfunction.h"
 #include "terminate_block.h"
 #include "mc.h"
-
 #include "energy.h"
-#include "constructnn.h"
 #include "bmd.h"
 
 /*---------------------------------------------------------------------------*/
@@ -167,7 +166,7 @@ extern Analysis analysis;
 // in quaternion.h
 
 // in mc.h
-extern MC  mc_single_large, mc_single_small, mc_cluster, mc_mono, mc_tailflip;
+extern MC  mc_single, mc_cluster, mc_mono, mc_tailflip;
 
 // in switchfunction.h
 extern Site site[NSITES]; 
@@ -175,6 +174,8 @@ extern Site site[NSITES];
 // in constructnn.h
 extern List list;
 
+// in bmd.h
+extern Langevin langevin;
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
@@ -183,7 +184,7 @@ extern List list;
 // extern void terminate_block(Slice *);
 // extern void finalstat(Slice *);
 // extern void bmdcycle();
-// extern void mc_warmup(Slice *);
+extern void mc_warmup(Slice *);
 // extern void ffscycle(int, int);
 // extern void mainloop_for_graphics();
 extern void emptyfiles();
@@ -192,6 +193,7 @@ extern double cosangle_to_angle(double );
 extern int check_nan(double *);
 extern void update_patch_vector_ipart(Slice *, int );
 extern void update_patch_vectors(Slice *);
+extern void read_coordinates_from_file(Slice *, int );
 // extern void free_all_memory(void); 
 // extern void linking_all_cluster(Slice *);
 
