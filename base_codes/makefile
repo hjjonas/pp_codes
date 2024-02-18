@@ -1,5 +1,5 @@
-SRCS=	 main.c init.c random.c criticalcasimir.c analysis.c quaternion.c switchfunction.c
-OBJS=	 main.o init.o random.o criticalcasimir.o analysis.o quaternion.o switchfunction.o
+SRCS=	 main.c init.c random.c criticalcasimir.c analysis.c quaternion.c switchfunction.c mc.c energy.c storage.c terminate_block.c
+OBJS=	 main.o init.o random.o criticalcasimir.o analysis.o quaternion.o switchfunction.o mc.o energy.o storage.o terminate_block.h
 
 HFILES = 
 
