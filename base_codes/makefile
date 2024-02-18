@@ -1,5 +1,5 @@
-SRCS=	 main.c init.c random.c criticalcasimir.c analysis.c
-OBJS=	 main.o init.o random.o criticalcasimir.o analysis.o
+SRCS=	 main.c init.c random.c criticalcasimir.c analysis.c quaternion.c switchfunction.c
+OBJS=	 main.o init.o random.o criticalcasimir.o analysis.o quaternion.o switchfunction.o
 
 HFILES = 
 
