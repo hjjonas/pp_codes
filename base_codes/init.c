@@ -661,8 +661,7 @@ void setup_delta(void){
 }
 
 void init_simtype(Slice *psl){
-    int  id;
-    
+    // initialize the module/algorithm dependent parameters 
 
     // when restarting the simulation, you also need to read in a configuration from file
     if ( (init_conf.restart==1) && (init_conf.start_type!=1)){ 
@@ -673,12 +672,12 @@ void init_simtype(Slice *psl){
         case MC_ALGORITHM:
             // Load modules for Monte Carlo algorithm
             #include "mc.h"
-            setup_MC();
+            setup_MC(); // inside mc.c
             break;
         case BMD_ALGORITHM:
             // Load modules for Brownian Dynamics algorithm
             #include "bmd.h"
-            // setup_BMD();
+            // setup_BMD(); //inside bmd.c
             break;
         case READ_TRAJECTORY:
             break;
