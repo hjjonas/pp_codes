@@ -4,6 +4,12 @@
 #define INIT_H
 
 // extern int global_variable;
+#define MAXLINE 100 // Define the maximum line length
+
+
+
+
+
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBAL FUNCTIONS------------------------------------*/
@@ -21,7 +27,7 @@ extern void setup_simulation( void );
 // double find_zcut(double );
 // double find_overlap_distance(void);
 // void gravitational_parameters(void);
-// void init_model(Slice *);
+void init_model(Slice *);
 // void init_simtype(Slice *);
 // void print_input(Slice *);
 // void print_particle_properties(void);
@@ -51,9 +57,17 @@ typedef struct init_type {
     char          directorypath[500];   // used to load files in a different folder, else this is "./" i.e. the current folder
 } Init;
 
+typedef struct {
+    const char *name;
+    void *ptr;
+    char type;
+} Entry;
+
 /*---------------------------------------------------------------------------*/
 /*------------------LOCAL STRUCTURES------------------------------------*/
 
 Init init_conf;
+
+
 
 #endif
