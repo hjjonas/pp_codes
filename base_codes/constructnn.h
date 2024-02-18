@@ -1,11 +1,9 @@
-// constuctnn.h
+// constructnn.h
 
 #ifndef NN_H
 #define NN_H
 
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL VARIABLES-----------------------------------------*/
-
 // definitions for neighborlist
 #define MAXPARTS            NPART
 #define MAX_IMAGES          (MAXPARTS *8) /* is MAXPARTS NPART?*/
@@ -18,12 +16,12 @@
 #define LJ_RZERO            1.5
 #define MAXBOXSIZE          20
 #define MINCELLSIZE         (LJ_RZERO/GRIDOFFSET)
-// #define NCELLX              ((int) (MAXBOXSIZE / MINCELLSIZE)) gives errors??
+// #define NCELLX              ((int) (MAXBOXSIZE / MINCELLSIZE)) gives errors?? Just hardcoded it:
 #define NCELLX              40
 #define NCELLY              (NCELLX)
 #define NCELLZ              (NCELLX)
-
 /*---------------------------------------------------------------------------*/
+
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
 typedef struct cell2_type {
  // for nearest neighbor
@@ -63,20 +61,16 @@ typedef struct list_type {
   Cell               cell[NCELLX][NCELLY][NCELLZ];
 
 } List;
-
 /*---------------------------------------------------------------------------*/
+
 /*------------------GLOBAL FUNCTIONS-----------------------------------------*/
-
-
+extern void setup_nnlist();
+extern void update_nnlist(Slice *);
 /*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------------*/
 
-
-
-/*---------------------------------------------------------------------------*/
 /*------------------GLOBAL STRUCTURES-----------------------------------------*/
-
 List list;
+/*---------------------------------------------------------------------------*/
 
 
 #endif
