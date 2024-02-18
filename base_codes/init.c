@@ -20,8 +20,8 @@ void setup_simulation() {
     printf("\nReading the input\n");
     read_input(&slice[0]);
 
-    // printf("\nInit the model\n");
-    // init_model(&slice[0]);
+    printf("\nInit the model\n");
+    init_model(&slice[0]);
     // printf("\nInput read from path.inp:\n");
     // print_input(&slice[0]);
 
@@ -43,8 +43,6 @@ void setup_simulation() {
     return;
 }
 
-
-#define MAXLINE 500
 void read_input(Slice *psl) {
 
     FILE *fp;
@@ -58,180 +56,101 @@ void read_input(Slice *psl) {
     }
 
     printf("\nReading input from path.inp\n");
+    // Define configuration entries
+    // 'd' is an integer, 's' is a string, 'f' is a float, 'p' is are strings, they are just titles to give in input-file structure
+    Entry entries[] = {
+        //      sys variables
+        {"sim_type", &sys.sim_type, 'd'},
+        {"ncycle1", &sys.ncycle1, 'd'},
+        {"ncycle2", &sys.ncycle2, 'd'},
+        {"cluster_MC", &sys.cluster_MC, 'd'},
+        {"nearest_neighbor", &sys.nearest_neighbor, 'd'},
+        {"switch_method", &sys.switch_method, 'd'},
+        {"beta", &psl->beta, 'f'},
+        {"boxl.x", &sys.boxl.x, 'f'},
+        {"boxl.y", &sys.boxl.y, 'f'},
+        {"gravity", &sys.gravity, 'f'},
+        // init_conf variables
+        {"start_type", &init_conf.start_type, 'd'},
+        {"read_path", &init_conf.read_path, 'd'},
+        {"directorypath", init_conf.directorypath, 's'},
+        {"mc_warmup", &init_conf.mc_warmup, 'd'},
+        {"particle_setup", &init_conf.particle_setup, 'd'},
+        {"restart", &init_conf.restart, 'd'},
+        {"empty_files", &init_conf.empty_files, 'd'},
+        {"nchains", &init_conf.nchains, 'd'},
+        {"chaingap", &init_conf.chaingap, 'f'},
+        //      analysis variables 
+        // {"bond_op", &analysis.bond_op, 'd'},
+        // {"print_trajectory", &analysis.print_trajectory, 'd'},
+        // {"bond_tracking", &analysis.bond_tracking, 'd'},
+        // {"rdfanalysis", &analysis.rdfanalysis, 'd'},
+        // {"cluster_analysis", &cluster.analysis, 'd'},
+        // {"adjacency", &analysis.adjacency, 'd'},
+        // {"s_histogram", &analysis.s_distribution, 'd'},
+        //  {"xy_print", &analysis.xy_print, 'd'},
+        // langevin (BMD) variables
+        // {"mobilityT", &langevin.mobilityT, 'f'},
+        // {"mobilityR", &langevin.mobilityR, 'f'},
+        // {"ninter", &langevin.ninter, 'd'},
+        // {"timestep", &langevin.timestep, 'f'},
+        // {"print_time", &langevin.print_time, 'f'},
+        // {"total_time", &langevin.total_time, 'f'},
+        //      potential variables
+        {"epsilongravLJ", &pot.epsilongravLJ, 'f'},
+        {"dT", &pot.dT, 'f'},
+        {"r_wetting", &pot.r_wetting, 'f'},
+        {"surface_charge", &pot.surface_charge, 'f'},
+        {"wall_int", &pot.wall_int, 'f'},
+        {"npart", &sys.npart, 'd'},
+        {"s_cutoff", &pot.s_cutoff, 'f'},
+        //      'n' denotes a newline
+        {"\n", NULL, 'n'}, 
+        //      titles in input file, just printed to the screen
+        {"SIMULATION\n", "simulation", 'p'},
+        {"MC\n", "MC", 'p'},
+        {"BMD\n", "BMD", 'p'},
+        {"HARMONIC_OSCILLATOR\n", "HARMONIC", 'p'},
+        {"FFS\n", "FFS", 'p'},
+        {"ANALYSIS\n", "Analysis", 'p'},
+        {"GRAVITY\n", "gravity", 'p'},
+        {"SWITCH_FUNCTION\n", "switch function", 'p'},
+        {"CRITICAL_CASIMIR\n", "critical Casimir potential", 'p'},
+        {"SYSTEM\n", "system", 'p'},
+        {"K\n", "K", 'p'}
+    };
 
-    while(fgets(line,MAXLINE, fp) != NULL) {
-        pt = strtok(line," ");
-        if( strcmp(pt,"sim_type")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&sys.sim_type);
-        // } else if( strcmp(pt,"bond_breakage")==0) { // strcmp=stringcompare
-        //     pt = strtok(NULL," "); //The C library function char *strtok(char *str, const char *delim) breaks string str into a series of tokens using the delimiter delim.
-        //     sscanf(pt,"%lf",&analysis.bond_breakage);
-        } else if( strcmp(pt,"start_type")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&init_conf.start_type);
-        } else if( strcmp(pt,"read_path")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&init_conf.read_path);
-        } else if( strcmp(pt,"directorypath")==0) {
-            pt = strtok(NULL," ");
-            // printf("%s",pt);
-            sscanf(pt,"%s",init_conf.directorypath);
-            // printf("the directorypath is %s\n",sys.directorypath);
-        } else if( strcmp(pt,"mc_warmup")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&init_conf.mc_warmup);
-        } else if( strcmp(pt,"particle_setup")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&init_conf.particle_setup);
-        } else if(strcmp(pt,"ncycle1")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&sys.ncycle1);
-        } else if( strcmp(pt,"ncycle2")==0) {
-            pt = strtok(NULL," ");
-            sscanf(pt,"%d",&sys.ncycle2);
-        // } else if( strcmp(pt,"bond_op")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.bond_op);
-        // } else if( strcmp(pt,"cluster_MC")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.cluster_MC);
-        // } else if( strcmp(pt,"nearest_neighbor")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.nearest_neighbor);
-        // } else if( strcmp(pt,"mobilityT")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&langevin.mobilityT);
-        // } else if( strcmp(pt,"mobilityR")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&langevin.mobilityR);
-        // } else if( strcmp(pt,"ninter")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&langevin.ninter);
-        // } else if( strcmp(pt,"timestep")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&langevin.timestep);
-        // } else if( strcmp(pt,"print_time")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&langevin.print_time);
-        // } else if( strcmp(pt,"total_time")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&langevin.total_time);
-        // } else if( strcmp(pt,"restart")==0) { // restart from this timestamp
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.restart); 
-        // } else if( strcmp(pt,"print_trajectory")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.print_trajectory);
-        // } else if( strcmp(pt,"bond_tracking")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.bond_tracking);
-        // } else if( strcmp(pt,"rdfanalysis")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.rdfanalysis);
-        // } else if( strcmp(pt,"cluster_analysis")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&cluster.analysis);
-        // } else if( strcmp(pt,"adjacency")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.adjacency);
-        // } else if( strcmp(pt,"s_histogram")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.s_distribution);
-        // } else if( strcmp(pt,"empty_files")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.empty_files);
-        // } else if( strcmp(pt,"xy_print")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&analysis.xy_print);
-        // } else if( strcmp(pt,"gravity")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&sys.gravity);
-        // }else if( strcmp(pt,"epsilongravLJ")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.epsilongravLJ);
-        // }else if( strcmp(pt,"switch_method")==0) { // these in site1.inp (with number)
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.switch_method);
-        // }        
-        // else if( strcmp(pt,"dT")==0) {   
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.dT);
-        // } else if( strcmp(pt,"r_wetting")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.r_wetting);
-        // } else if( strcmp(pt,"surface_charge")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.surface_charge);
-        // } else if( strcmp(pt,"wall_int")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.wall_int);
-        // } else if( strcmp(pt,"npart")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.npart);
-        // } else if( strcmp(pt,"s_cutoff")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&pot.s_cutoff);
-        // } else if( strcmp(pt,"beta")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&psl->beta);
-        // } else if( strcmp(pt,"boxl")==0) { //boxlx is not read as boxlx, because of old inputfiles using boxl
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&sys.boxl.x);
-        // } else if( strcmp(pt,"boxly")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&sys.boxl.y);
-        // } else if( strcmp(pt,"nchains")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%d",&sys.nchains);
-        // } else if( strcmp(pt,"chaingap")==0) {
-        //     pt = strtok(NULL," ");
-        //     sscanf(pt,"%lf",&sys.chaingap);
-        // } 
-        // else if( strcmp(pt,"\n")==0) {
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"SIMULATION\n")==0) {
-        //     printf("Reading simulation parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"GRAPHICS\n")==0) {
-        //     printf("Reading graphics parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"MC\n")==0) {
-        //     printf("Reading MC parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"BMD\n")==0) {
-        //     printf("Reading BMD parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"HARMONIC_OSCILLATOR\n")==0) {
-        //     printf("Reading HARMONIC parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"FFS\n")==0) {
-        //     printf("Reading FFS parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"ANALYSIS\n")==0) {
-        //     printf("Reading Analysis parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"GRAVITY\n")==0) {
-        //     printf("Reading gravity parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"SWITCH_FUNCTION\n")==0) {
-        //     printf("Reading switch function parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"Simons_Potential\n")==0) {
-        //     printf("Reading potential parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"SYSTEM\n")==0) {
-        //     printf("Reading system parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"K\n")==0) {
-        //     printf("Reading K parameters\n");
-        //     pt = strtok(NULL," ");
-        // } else if( strcmp(pt,"TIS\n")==0) {
-        //     printf("Reading TIS parameters\n");
-        // } else if( strcmp(pt,"\n")==0) {
-        //     // pt = strtok(NULL," ");
-        } else {
-            printf("Keyword unknown: %s\n",pt);
+    // read the file and load in the input
+    while (fgets(line, MAXLINE, fp) != NULL) {
+        pt = strtok(line, " ");
+        
+        for (int i = 0; i < sizeof(entries) / sizeof(entries[0]); i++) {
+            if (strcmp(pt, entries[i].name) == 0) {
+                switch (entries[i].type) {
+                    case 'd':
+                        pt = strtok(NULL, " ");
+                        sscanf(pt, "%d", (int *)entries[i].ptr);
+                        break;
+                    case 'f':
+                        pt = strtok(NULL, " ");
+                        sscanf(pt, "%lf", (double *)entries[i].ptr);
+                        break;
+                    case 's':
+                        pt = strtok(NULL, " ");
+                        sscanf(pt, "%s", (char *)entries[i].ptr);
+                        break;
+                    case 'p':
+                        printf("Reading %s parameters\n", (char *)entries[i].ptr);
+                        break;
+                    case 'n':
+                        // Just a newline, do nothing
+                        break;
+                    default:
+                        printf("Keyword unknown: %s\n", pt);
+                        break;
+                }
+                break;
+            }
         }
     }
 
@@ -245,76 +164,76 @@ void read_input(Slice *psl) {
 }
 
 
-// void init_model(Slice *psl) {
-//     /*startis with defining the potential based on rwet and sc,
-//     then determines the minimum of the potential and de bond energy threshold
-//     */
-//     double bond_treshold_fraction=0.001;
+void init_model(Slice *psl) {
+    /*startis with defining the potential based on rwet and sc,
+    then determines the minimum of the potential and de bond energy threshold
+    */
+    double bond_treshold_fraction=0.001;
 
-//     sys.sigma=3.2e-6;//micron
-//     if (sys.boxl.y<1e-5 & sys.boxl.x>1e-5){
-//         //its a cubic box
-//         sys.boxl.y = sys.boxl.z = sys.boxl.x;
-//     }
-//     else if(sys.boxl.y>1e-5 & sys.boxl.x>1e-5){
-//         sys.boxl.z = sys.boxl.x;
-//     }
-//     else if(sys.boxl.x<1e-5){
-//         vprint(sys.boxl);
-//         error("box length is not read correctly");
-//     }
+    sys.sigma=3.2e-6;//micron
+    if (sys.boxl.y<1e-5 & sys.boxl.x>1e-5){
+        //its a cubic box
+        sys.boxl.y = sys.boxl.z = sys.boxl.x;
+    }
+    else if(sys.boxl.y>1e-5 & sys.boxl.x>1e-5){
+        sys.boxl.z = sys.boxl.x;
+    }
+    else if(sys.boxl.x<1e-5){
+        vprint(sys.boxl);
+        error("box length is not read correctly");
+    }
 
-//     psl->temp = 1.0/psl->beta;
-//     cluster.update=1; // always start with a cluster update if dong MC + clusterupdate 
-//     pot.rcutoff=pot.s_cutoff+1.;
+    psl->temp = 1.0/psl->beta;
+    cluster.update=1; // always start with a cluster update if dong MC + clusterupdate 
+    pot.rcutoff=pot.s_cutoff+1.;
 
-//     /*setting up the parameters of the potentials, based on wetting , surface charge*/
-//     setup_Simons_potential_parameters(); // casimir potential 
+    /*setting up the parameters of the potentials, based on wetting , surface charge*/
+    setup_criticalCasimir_potential_parameters(); // casimir potential 
 
-//     /*take minimum bond length for bond average*/
-//     printf("\nLooking for the minimum of the potential...");
-//     pot.s_min= find_minimum_of_potential();
-//     pot.s_overlap = find_overlap_distance(); // do this after finding s_min
-//     pot.s_forcecut = find_forcecutoff_distance(); // only used in BMD
+    // /*take minimum bond length for bond average*/
+    // printf("\nLooking for the minimum of the potential...");
+    // pot.s_min= find_minimum_of_potential();
+    // pot.s_overlap = find_overlap_distance(); // do this after finding s_min
+    // pot.s_forcecut = find_forcecutoff_distance(); // only used in BMD
 
-//     pot.bond_cutoffE=-0.1; // this defines the bond
+    // pot.bond_cutoffE=-0.1; // this defines the bond
 
-//     //first read in the particle, specifies particle types etc
-//     printf("Setting up the positions and sites for the particles...");
-//     setup_positions_sites(psl);
-//     printf("done\n");
+    // //first read in the particle, specifies particle types etc
+    // printf("Setting up the positions and sites for the particles...");
+    // setup_positions_sites(psl);
+    // printf("done\n");
     
-//     //patchwidth variables
-//     printf("Setting up the patch widths definitions for the particles...");
-//     setup_delta();
-//     printf("done\n");
+    // //patchwidth variables
+    // printf("Setting up the patch widths definitions for the particles...");
+    // setup_delta();
+    // printf("done\n");
 
-//     printf("printing potentials ... \n");
-//     plotpotential();
-//     printf("done\n");
+    // printf("printing potentials ... \n");
+    // plotpotential();
+    // printf("done\n");
 
 
-//     /*Calculate the gravitational force fg and correction b_zc*/
-//     if(sys.gravity>0){
-//         printf("\nSetting GRAVITY PARAMETERS...\n");
-//         gravitational_parameters();
-//         printf("done\n");
-//         double cov=psl->nparts/(sys.boxl.x*sys.boxl.y);
-//         printf(" the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage ",cov,cov*(PI/4.));
-//     }
+    // /*Calculate the gravitational force fg and correction b_zc*/
+    // if(sys.gravity>0){
+    //     printf("\nSetting GRAVITY PARAMETERS...\n");
+    //     gravitational_parameters();
+    //     printf("done\n");
+    //     double cov=psl->nparts/(sys.boxl.x*sys.boxl.y);
+    //     printf(" the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage ",cov,cov*(PI/4.));
+    // }
     
-//     /*rcut^2*/
-//     if (pot.s_cutoff>0.5){
-//         error("pot.s_cutoff too bit, make it bigger than 0.5");
-//     }
+    // /*rcut^2*/
+    // if (pot.s_cutoff>0.5){
+    //     error("pot.s_cutoff too bit, make it bigger than 0.5");
+    // }
     
    
-//     /*does sim_type specific definitions*/
-//     init_simtype(psl);
-//     check_input_with_MAXDEFS();
+    // /*does sim_type specific definitions*/
+    // init_simtype(psl);
+    // check_input_with_MAXDEFS();
 
-//     return;
-// }
+    return;
+}
 // double find_minimum_of_potential(void){
 //     /* actually just use deriveative much easier? 
 //     this code looks for the minimum of the potential by increasing s the surface-surface distance and reading the attractive and repulsive potential
