@@ -6,29 +6,6 @@
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBAL VARIABLES------------------------------------*/
 
-
-/*---------------------------------------------------------------------------*/
-/*------------------GLOBAL FUNCTIONS------------------------------------*/
-// extern void  add_bond_information(Slice *,int ,int ,double ,double ,double );
-// extern int bond_check(Slice *, int , int );
-// extern double particles_distance(Slice *, int , int );
-// extern vector particles_vector(Slice *, int , int );
-// extern void clustersize_freq_update(Slice *);
-// extern void check_maxbonds(Slice *);
-// extern int cluster_analysis(Slice *);
-// extern void clustersize_identification(Slice *psl);
-// extern double running_variance2(double, double, double, double, long);
-// extern double running_mean(double, double, long);
-// extern void reset_running_statistics(Statistics *);
-// extern void running_statistics(Statistics *, double );
-// extern int particle_in_wall(Slice *psl, int ipart);
-// extern void linked_structure_icluster(Slice *, int , int );
-// extern void particles_distance_length_vector(Slice *, int , int  ,double *, double *,vector *);
-
-/*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------*/
-
-
 /*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
 
@@ -39,7 +16,7 @@ typedef struct statistics_type {
 
     double        mean,
                   variance2;
-    long           n;
+    long          n;
 
 } Statistics;
 
@@ -110,10 +87,36 @@ typedef struct analysis_type {
 } Analysis;
 
 /*---------------------------------------------------------------------------*/
+/*------------------LOCAL FUNCTIONS------------------------------------*/
+void DFS(Slice *,int  ,IntArray *, Slice *);
+
+
+/*---------------------------------------------------------------------------*/
 /*------------------LOCAL STRUCTURES------------------------------------*/
 
 Cluster cluster;
 Analysis analysis;
+
+/*---------------------------------------------------------------------------*/
+/*------------------GLOBAL FUNCTIONS------------------------------------*/
+
+extern void linking_all_cluster(Slice *psl);
+extern void  add_bond_information(Slice *,int ,int ,double ,double ,double );
+extern int bond_check(Slice *, int , int );
+extern double particles_distance(Slice *, int , int );
+extern vector particles_vector(Slice *, int , int );
+extern void clustersize_freq_update(Slice *);
+extern void check_maxbonds(Slice *);
+extern int cluster_analysis(Slice *);
+extern void clustersize_identification(Slice *psl);
+extern void linked_structure_icluster(Slice *, int , int );
+extern double running_variance2(double, double, double, double, long);
+extern double running_mean(double, double, long);
+extern void reset_running_statistics(Statistics *);
+extern void running_statistics(Statistics *, double );
+extern int particle_in_wall(Slice *psl, int ipart);
+
+extern void particles_distance_length_vector(Slice *, int , int  ,double *, double *,vector *);
 
 
 #endif
