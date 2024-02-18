@@ -10,34 +10,9 @@
 /*------------------GLOBAL FUNCTIONS------------------------------------*/
 
 extern void setup_simulation( void );
-
-/*---------------------------------------------------------------------------*/
-/*------------------LOCAL FUNCTIONS------------------------------------*/
-
-void check_input_with_MAXDEFS(void);
-// vector check_read_unitvec(vector );
-double find_forcecutoff_distance(void );
-double find_minimum_of_potential(void);
-double find_trunc_of_Saccent_1(int);
-// double find_zcut(double );
-double find_overlap_distance(void);
-void gravitational_parameters(void);
-void init_model(Slice *);
-void init_simtype(Slice *);
-// void print_input(Slice *);
-// void print_particle_properties(void);
-// void ratcheting_prep(Slice *);
-// int ratcheting_prep_conditions(int , int );
-void read_input(Slice *);
-// void restart_read_time(Slice *);
-void setup_delta(void);
-// void setup_mc_move(MC *);
-void setup_positions_sites(Slice *);
-void read_particletypes(Slice *);
-void conf_input(Slice *);
-vector check_read_unitvec(vector );
-void plotpotential(void);
-
+extern void restart_read_time(Slice *);
+extern void plotpotential(void);
+extern void check_random(void);
 
 /*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
