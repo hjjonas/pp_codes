@@ -6,9 +6,13 @@ double S_value(double cositheta, double cosjtheta,double cos_ijtheta, int ptypei
     S =max(S'i,S'j) = S0        option 0 of site[ptype].switch_method
     S =S'i*S'j  = S90           option 1
     S = lincomb SO, S90, S180   option 2 
-    S' is old switch            option 0 of site[ptype].s_accent;
-    S' is integrated switch     option 1*/
+    
+    S' is smooth switch         option 0 of site[ptype].s_accent;
+    S' is integrated switch     option 1
+    S' is linear function       option 2*/
     // returns the value of S given the 3 angles between two particles 
+
+    // see J. Chem. Phys. 155, 034902 (2021); doi: 10.1063/5.0055012 for details
     double Si, Sj, S;
     
 
@@ -26,23 +30,25 @@ double S_value(double cositheta, double cosjtheta,double cos_ijtheta, int ptypei
     }
     
     // then create S
-    if (sys.switch_method==0){ //switch_method is a sys variable; it holds for all particles the same
-        // first calc Si' and S'j
-        Si = Saccent( cositheta,  ptypei);
-        Sj = Saccent( cosjtheta,  ptypej);
-        S=S0(Si,Sj);
-    }
-    else if(sys.switch_method==1){
-        // first calc Si' and S'j
-        Si = Saccent( cositheta,  ptypei);
-        Sj = Saccent( cosjtheta,  ptypej);
-        S=S90(Si,Sj);
-    }
-    else if(sys.switch_method==2){
-        S=switch_method_2(cositheta,cosjtheta,cos_ijtheta, ptypei, ptypej );
-    }
-    else{
-        error("choose switch_method = 0 (S0), 1(S90), 2(lincomb)");
+    switch (sys.switch_method) {
+        case 0:
+            // first calc Si' and S'j
+            Si = Saccent(cositheta, ptypei);
+            Sj = Saccent(cosjtheta, ptypej);
+            S = S0(Si, Sj);
+            break;
+        case 1:
+            // first calc Si' and S'j
+            Si = Saccent(cositheta, ptypei);
+            Sj = Saccent(cosjtheta, ptypej);
+            S = S90(Si, Sj);
+            break;
+        case 2:
+            /*the linear combination method*/
+            S = switch_method_2(cositheta, cosjtheta, cos_ijtheta, ptypei, ptypej);
+            break;
+        default:
+            error("choose switch_method = 0 (S0), 1(S90), 2(lincomb)");
     }
 
     if((S<-1e-1) || (S-1.>1e-3 && S>1.) || ((S/S!=1) && S>0) ){
@@ -65,33 +71,36 @@ double Saccent(double costheta, int ptype ){
     //returns the S'(i) of paritcle i with angle costheta and particletype ptype
     double Saccent;
 
-    if (site[ptype].s_accent==3 ){
-        Saccent=site[ptype].S_fixed;
-        return Saccent;
-    }
-    else if( site[ptype].s_accent==0){
-        // printf("CALC old_S\n");
-        Saccent=old_S(costheta,ptype);
-    }
-    else if (site[ptype].s_accent==1){
-        // printf("CALC new_S\n");
-        Saccent=new_S(costheta,ptype);
-    }
-    else if (site[ptype].s_accent==2){
-        // printf("CALC linear S\n");
-        Saccent=S_lin(costheta,ptype);     
-    }
-    else{
-        gprint(costheta);
-        dprint(ptype);
-        dprint(site[ptype].s_accent);
-        error("particletype[ptype].s_accent should be 0 (for Sold) and 1(for Snew) and 2 for linear S, and 3 for fixed");
-    }
+    switch (site[ptype].s_accent) {
+
+        case 0:
+            // printf("CALC smooth_S\n");
+            Saccent = smooth_S(costheta, ptype);
+            break;
+        case 1:
+            // printf("CALC integrated_S\n");
+            Saccent = integrated_S(costheta, ptype);
+            break;
+        case 2:
+            // printf("CALC linear S\n");
+            Saccent = linear_S(costheta, ptype);
+            break;
+        case 3:
+            Saccent = site[ptype].S_fixed;
+            break;
+        default:
+            gprint(costheta);
+            dprint(ptype);
+            dprint(site[ptype].s_accent);
+            error("particletype[ptype].s_accent can only be 0 (for Ssmooth) and 1(for Sintegrate) and 2 for linear S, and 3 for fixed");
+
+        
+    }   
     return Saccent;
 
 }
 
-double S_lin(double costheta, int ptype){
+double linear_S(double costheta, int ptype){
     double theta_p=site[ptype].delta_degree,  Slin, angle;
     
     angle=(costheta<1.)? acos(costheta)*180./PI:0;
@@ -100,14 +109,14 @@ double S_lin(double costheta, int ptype){
 }
 
 
-double old_S(double costheta, int ptype){
-    double Sold, cosdelta_particle = site[ptype].cosdelta,oneover_cosdelta = site[ptype].oneover_cosdelta;
+double smooth_S(double costheta, int ptype){
+    double Ssmooth, cosdelta_particle = site[ptype].cosdelta,oneover_cosdelta = site[ptype].oneover_cosdelta;
 
-    Sold=0.5*(1.0-cos(PI*(costheta-cosdelta_particle)*oneover_cosdelta));
-    return Sold;
+    Ssmooth=0.5*(1.0-cos(PI*(costheta-cosdelta_particle)*oneover_cosdelta));
+    return Ssmooth;
 }
 
-double new_S(double cosangle, int ptype){
+double integrated_S(double cosangle, int ptype){
     /* switch_expbcd is a switch function as integrated with the patch integration scheme,
     and fitted to a curve exp(cx^2 + dx^3 + ex^4 + fx^5 + gx^6) where x =1-cos(theta) and theta the angle
     the first parameter in the exponent is c, because, a=0 (such that f(0)=1) and b=0, because f'(0)=0
@@ -268,11 +277,11 @@ double dSaccent_dcosangle(double cosangle, int ptype){
     double cx1_2, dx2_3, ex3_4, fx4_5, gx5_6,hx6_7,ix7_8;
 
     // make distinction between particletype
-    if (site[ptype].s_accent==0){
-        dSaccent_dcosangle=dSold_dcostheta(cosangle,ptype);
+    if (site[ptype].s_accent==0){ // from R. Guo, J. Mao, X.-M. Xie, and L.-T. Yan, Sci. Rep. 4, 7021 (2015).
+        dSaccent_dcosangle=dSsmooth_dcostheta(cosangle,ptype);
     }
     else if (site[ptype].s_accent==1){
-        dSaccent_dcosangle= dSnew_dcostheta(cosangle, ptype);
+        dSaccent_dcosangle= dSintegrated_dcostheta(cosangle, ptype);
     }
     else if (site[ptype].s_accent==2){
         error("if s_accent=2 the switchfunction is linear and discontinuous");
@@ -287,7 +296,7 @@ double dSaccent_dcosangle(double cosangle, int ptype){
     return dSaccent_dcosangle;
 }
 
-double dSnew_dcostheta(double cosangle, int ptype){
+double dSintegrated_dcostheta(double cosangle, int ptype){
     /* the derivative wrt to cosangle of Saccent 
     S'=exp(a(x))
     dS'/dcostheta   = dS'/da * da/dx * dx/dcostheta = 
@@ -343,15 +352,15 @@ double dSnew_dcostheta(double cosangle, int ptype){
     return dSaccent_dcosangle;
 }
 
-double dSold_dcostheta(double costheta , int ptype){
-    double dSold_dcostheta;
+double dSsmooth_dcostheta(double costheta , int ptype){
+    double dSsmooth_dcostheta;
     double cosdelta_particle = site[ptype].cosdelta,oneover_cosdelta = site[ptype].oneover_cosdelta;
 
-    dSold_dcostheta=HALFPI*sin(PI*(costheta-cosdelta_particle)*oneover_cosdelta)*oneover_cosdelta;
-    // gprint(dSold_dcostheta);
+    dSsmooth_dcostheta=HALFPI*sin(PI*(costheta-cosdelta_particle)*oneover_cosdelta)*oneover_cosdelta;
+    // gprint(dSsmooth_dcostheta);
     // gprint(cosdelta_particle);
     // gprint(oneover_cosdelta);
-    return dSold_dcostheta;
+    return dSsmooth_dcostheta;
 }
 
 double dS0_dcostheta(double cosangle1, int ptype1, double cosangle2, int ptype2){
