@@ -51,9 +51,9 @@ extern double dS_dcostheta(Slice *, double , int , double , int  );
 
 /*---------------------------------------------------------------------------*/
 /*------------------LOCAL FUNCTIONS------------------------------------------*/
-double old_S(double , int);
-double new_S(double, int);
-double S_lin(double , int );
+double smooth_S(double , int);
+double integrated_S(double, int);
+double linear_S(double , int );
 
 double S0(double ,double );
 double S90(double ,double );
@@ -61,8 +61,8 @@ double S180(double ,double );
 double switch_method_2( double , double , double , int,int);
 
 double dSaccent_dcosangle(double, int );
-double dSold_dcostheta(double, int  );
-double dSnew_dcostheta(double , int );
+double dSsmooth_dcostheta(double, int  );
+double dSintegrated_dcostheta(double , int );
 double dS0_dcostheta(double, int  ,double, int  );
 double dS180_dcostheta(double, int  ,double, int  );
 double dS90_dcostheta(double, int  ,double, int  );
