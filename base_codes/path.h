@@ -8,119 +8,10 @@
 #include <dirent.h> 
 #include <time.h>
 
-/*------------------INLINE SUBSTITUTIONS-------------------------------------*/
+/*--------------------------------------------------------------------------------------*/
+/*------------------FIXED/HARD CODED MAXIMUM VALUES ------------------------------------*/
 
-//Binary definitions
-#define TRUE 1
-#define FALSE 0
-#define CANCELLED -99
-
-#define SIM_MC 2
-#define SIM_BMD 0
-#define SIM_READ 1
-
-#define P_INDEX(ptr)  (ptr - pts)
-#define F_COMP(a,b) (fabs( a-b ) < 1e-10)
-#define MIN(a,b,tmp)    (  (tmp=a) < b  ? tmp : b )
-#define MAX(a,b,tmp)    (  (tmp=a) > b  ? tmp : b )
-#define MESSAGE(a) printf("Message:"#a"\n")
-#define SIGN(a)   ( 2*(a>0) -1) 
-
-#define max(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    _a > _b ? _a : _b; })
-#define min(a,b) \
-    ({ __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    _a < _b ? _a : _b; })
-
-//Math shorthands + special numbers
-#define PI           3.141592653589793
-#define HALFPI       1.5707963267948966
-#define SQRT2        1.4142136
-#define BIGNUM       1e99
-#define EPS          1e-10
-#define NVT          1
-#define cubic(x) ((x)*(x)*(x))
-#define square(x) ((x)*(x))
-
-//Print shorthands
-#define dprint(expr) printf("  "#expr " = %d\n",expr)
-#define gprint(expr) printf("  "#expr " = %20.15g\n",expr)
-#define vprint(expr) printf("  "#expr " = ( %16.14g %16.14g %16.14g ) \n",expr.x, expr.y, expr.z)
-#define qprint(expr) printf("  "#expr " = ( %16.14g %16.14g %16.14g %16.14g) \n",expr.q0, expr.q1, expr.q2 expr.q3)
-#define getName(var)  #var
-
-//Vector definitions
-#define vector_inp(a, b) (a.x * b.x + a.y * b.y + a.z * b.z )
-#define vector_cross(a,b,h)   h.x = a.y * b.z - a.z * b.y; h.y = a.z * b.x - a.x * b.z; h.z = a.x * b.y - a.y * b.x;
-#define vector_times(a,b,h)   h.x = a.x * b.x; h.y = a.y * b.y; h.z = a.z * b.z;
-#define vector_divide(a,b,h)   h.x = a.x / b.x; h.y = a.y / b.y; h.z = a.z / b.z;
-#define vector_plustimes(a,b,h)   h.x += a.x * b.x; h.y += a.y * b.y; h.z += a.z * b.z;
-#define vector_mintimes(a,b,h)   h.x -= a.x * b.x; h.y -= a.y * b.y; h.z -= a.z * b.z;
-#define scalar_times(a,b,h)  h.x = a.x *b; h.y =a.y * b; h.z = a.z * b;  
-#define scalar_divide(a,b,h)  h.x = a.x /b; h.y =a.y / b; h.z = a.z / b;  
-#define scalar_plustimes(a,b,h)  h.x += a.x *b; h.y +=a.y * b; h.z += a.z * b;  
-#define scalar_mintimes(a,b,h)  h.x -= a.x *b; h.y -=a.y * b; h.z -= a.z * b;  
-#define vector_add(a,b,h)  {h.x = a.x +b.x; h.y =a.y + b.y; h.z = a.z + b.z;  }
-#define vector_minus(a,b,h) { h.x = a.x - b.x; h.y =a.y - b.y; h.z = a.z - b.z;  }
-#define matrix_x_vector(m,a,h) {\
-    h.x = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
-    h.y = m.y.x*a.x + m.y.y*a.y + m.y.z*a.z;\
-    h.z = m.z.x*a.x + m.z.y*a.y + m.z.z*a.z;}
-#define matrixT_x_vector(m,a,h) {\
-    h.x = m.x.x*a.x + m.y.x*a.y + m.z.x*a.z;\
-    h.y = m.x.y*a.x + m.y.y*a.y + m.z.y*a.z;\
-    h.z = m.x.z*a.x + m.y.z*a.y + m.z.z*a.z;}
-#define normvec(a,b) {b.x=a.x/sqrt(vector_inp(a,a)); b.y=a.y/sqrt(vector_inp(a,a)); b.z=a.z/sqrt(vector_inp(a,a));}
-
-//Quaternion definitions
-    /* never use b and h the same variable*/
-#define quat_add(a,b,h) { h.q0=a.q0+b.q0; h.q1=a.q1+b.q1; h.q2=a.q2+b.q2; h.q3=a.q3+b.q3; }
-#define quat_minus(a,b,h) { h.q0=a.q0-b.q0; h.q1=a.q1-b.q1; h.q2=a.q2-b.q2; h.q3=a.q3-b.q3;}
-#define quat_inp(a,b) (a.q0*b.q0 + a.q1*b.q1 + a.q2*b.q2 + a.q3*b.q3)
-#define sctimes_quat(a,b,h) { h.q0=a.q0*b; h.q1=a.q1*b; h.q2=a.q2*b; h.q3=a.q3*b;}
-#define scdivide_quat(a,b,h) { h.q0=a.q0/b; h.q1=a.q1/b; h.q2=a.q2/b; h.q3=a.q3/b; }
-#define quat_times(a,b,h) {\
-    h.q0 = a.q0*b.q0 - a.q1*b.q1 - a.q2*b.q2 - a.q3*b.q3;\
-    h.q1 = a.q0*b.q1 + a.q1*b.q0 + a.q2*b.q3 - a.q3*b.q2;\
-    h.q2 = a.q0*b.q2 - a.q1*b.q3 + a.q2*b.q0 + a.q3*b.q1;\
-    h.q3 = a.q0*b.q3 + a.q1*b.q2 - a.q2*b.q1 + a.q3*b.q0;} 
-#define quat_inverse(a,h) {h.q0 = a.q0; h.q1 = -a.q1; h.q2 = -a.q2; h.q3 = -a.q3;}
-#define quatmatrix_x_vec(m,a,h) {\
-    h.q0 = m.w.x*a.x + m.w.y*a.y + m.w.z*a.z;\
-    h.q1 = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
-    h.q2 = m.y.x*a.x + m.y.y*a.y + m.y.z*a.z;\
-    h.q3 = m.z.x*a.x + m.z.y*a.y + m.z.z*a.z;}
-
-//Update definitions
-#define update_average(a,b) {a.now =b; a.sum += a.now; a.sumsq += a.now*a.now; a.n++;}
-#define update_blockaver(a) {a.sum /= a.n; a.sumsq = sqrt(a.sumsq/a.n - a.sum*a.sum);}
-#define update_finaver(a,b) {a.sum += b.sum; a.sumsq += b.sum*b.sum;  b.sum = 0; b.sumsq = 0; b.now=0; b.n=0;}
-#define update_blockmc(a,b) {a.acc += b.acc; a.tries += b.tries;  b.acc = 0; b.tries = 0;}
-
-
-#define SWAP(a,b,c) {c=a;a=b;b=c;}
-
-//Periodic Boundary conditions
-#define pbc(a,b) {\
-    do{\
-      if(a.x>(0.5*b.x)) a.x-=b.x;\
-      if(a.x<(-0.5*b.x)) a.x+=b.x;\
-    }while( fabs(a.x)>0.5*fabs(b.x) );\
-    do{\
-      if(a.y>(0.5*b.y)) a.y-=b.y;\
-      if(a.y<(-0.5*b.y)) a.y+=b.y;\
-    }while( fabs(a.y)>0.5*fabs(b.y) );\
-    do{\
-      if(a.z>(0.5*b.z)) a.z-=b.z;\
-      if(a.z<(-0.5*b.z)) a.z+=b.z;\
-      }while( fabs(a.z)>0.5*fabs(b.z) );\
-    }
-
-
-#define NPART 1000 
+#define NPART 1000        // maximum number of particles
 #define NSITES 3          //maximum number of sites on 1 particle
 #define PTYPES 6          //particle types; eg dipatch and tripatch cC potential --> 2 
 #define MAXBONDS NSITES   // maximum number of bonds
@@ -242,6 +133,8 @@ typedef struct slice_type {
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
 
 extern Slice        *slice, *psl_old, *start_slice, *copyslice;
+extern System       sys;
+extern Potential     pot;
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED FUNCTIONS-------------------------------*/
@@ -267,3 +160,114 @@ extern Slice        *slice, *psl_old, *start_slice, *copyslice;
 /*------------------THE H-FILES----------------------------------------------*/
 #include "random.h"
 #include "init.h"
+
+/*------------------INLINE SUBSTITUTIONS-------------------------------------*/
+
+//Binary definitions
+#define TRUE 1
+#define FALSE 0
+#define CANCELLED -99
+
+#define SIM_MC 2
+#define SIM_BMD 0
+#define SIM_READ 1
+
+#define P_INDEX(ptr)  (ptr - pts)
+#define F_COMP(a,b) (fabs( a-b ) < 1e-10)
+#define MIN(a,b,tmp)    (  (tmp=a) < b  ? tmp : b )
+#define MAX(a,b,tmp)    (  (tmp=a) > b  ? tmp : b )
+#define MESSAGE(a) printf("Message:"#a"\n")
+#define SIGN(a)   ( 2*(a>0) -1) 
+
+#define max(a,b) \
+    ({ __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a > _b ? _a : _b; })
+#define min(a,b) \
+    ({ __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a < _b ? _a : _b; })
+
+//Math shorthands + special numbers
+#define PI           3.141592653589793
+#define HALFPI       1.5707963267948966
+#define SQRT2        1.4142136
+#define BIGNUM       1e99
+#define EPS          1e-10
+#define NVT          1
+#define cubic(x) ((x)*(x)*(x))
+#define square(x) ((x)*(x))
+
+//Print shorthands
+#define dprint(expr) printf("  "#expr " = %d\n",expr)
+#define gprint(expr) printf("  "#expr " = %20.15g\n",expr)
+#define vprint(expr) printf("  "#expr " = ( %16.14g %16.14g %16.14g ) \n",expr.x, expr.y, expr.z)
+#define qprint(expr) printf("  "#expr " = ( %16.14g %16.14g %16.14g %16.14g) \n",expr.q0, expr.q1, expr.q2 expr.q3)
+#define getName(var)  #var
+
+//Vector definitions
+#define vector_inp(a, b) (a.x * b.x + a.y * b.y + a.z * b.z )
+#define vector_cross(a,b,h)   h.x = a.y * b.z - a.z * b.y; h.y = a.z * b.x - a.x * b.z; h.z = a.x * b.y - a.y * b.x;
+#define vector_times(a,b,h)   h.x = a.x * b.x; h.y = a.y * b.y; h.z = a.z * b.z;
+#define vector_divide(a,b,h)   h.x = a.x / b.x; h.y = a.y / b.y; h.z = a.z / b.z;
+#define vector_plustimes(a,b,h)   h.x += a.x * b.x; h.y += a.y * b.y; h.z += a.z * b.z;
+#define vector_mintimes(a,b,h)   h.x -= a.x * b.x; h.y -= a.y * b.y; h.z -= a.z * b.z;
+#define scalar_times(a,b,h)  h.x = a.x *b; h.y =a.y * b; h.z = a.z * b;  
+#define scalar_divide(a,b,h)  h.x = a.x /b; h.y =a.y / b; h.z = a.z / b;  
+#define scalar_plustimes(a,b,h)  h.x += a.x *b; h.y +=a.y * b; h.z += a.z * b;  
+#define scalar_mintimes(a,b,h)  h.x -= a.x *b; h.y -=a.y * b; h.z -= a.z * b;  
+#define vector_add(a,b,h)  {h.x = a.x +b.x; h.y =a.y + b.y; h.z = a.z + b.z;  }
+#define vector_minus(a,b,h) { h.x = a.x - b.x; h.y =a.y - b.y; h.z = a.z - b.z;  }
+#define matrix_x_vector(m,a,h) {\
+    h.x = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
+    h.y = m.y.x*a.x + m.y.y*a.y + m.y.z*a.z;\
+    h.z = m.z.x*a.x + m.z.y*a.y + m.z.z*a.z;}
+#define matrixT_x_vector(m,a,h) {\
+    h.x = m.x.x*a.x + m.y.x*a.y + m.z.x*a.z;\
+    h.y = m.x.y*a.x + m.y.y*a.y + m.z.y*a.z;\
+    h.z = m.x.z*a.x + m.y.z*a.y + m.z.z*a.z;}
+#define normvec(a,b) {b.x=a.x/sqrt(vector_inp(a,a)); b.y=a.y/sqrt(vector_inp(a,a)); b.z=a.z/sqrt(vector_inp(a,a));}
+
+//Quaternion definitions
+    /* never use b and h the same variable*/
+#define quat_add(a,b,h) { h.q0=a.q0+b.q0; h.q1=a.q1+b.q1; h.q2=a.q2+b.q2; h.q3=a.q3+b.q3; }
+#define quat_minus(a,b,h) { h.q0=a.q0-b.q0; h.q1=a.q1-b.q1; h.q2=a.q2-b.q2; h.q3=a.q3-b.q3;}
+#define quat_inp(a,b) (a.q0*b.q0 + a.q1*b.q1 + a.q2*b.q2 + a.q3*b.q3)
+#define sctimes_quat(a,b,h) { h.q0=a.q0*b; h.q1=a.q1*b; h.q2=a.q2*b; h.q3=a.q3*b;}
+#define scdivide_quat(a,b,h) { h.q0=a.q0/b; h.q1=a.q1/b; h.q2=a.q2/b; h.q3=a.q3/b; }
+#define quat_times(a,b,h) {\
+    h.q0 = a.q0*b.q0 - a.q1*b.q1 - a.q2*b.q2 - a.q3*b.q3;\
+    h.q1 = a.q0*b.q1 + a.q1*b.q0 + a.q2*b.q3 - a.q3*b.q2;\
+    h.q2 = a.q0*b.q2 - a.q1*b.q3 + a.q2*b.q0 + a.q3*b.q1;\
+    h.q3 = a.q0*b.q3 + a.q1*b.q2 - a.q2*b.q1 + a.q3*b.q0;} 
+#define quat_inverse(a,h) {h.q0 = a.q0; h.q1 = -a.q1; h.q2 = -a.q2; h.q3 = -a.q3;}
+#define quatmatrix_x_vec(m,a,h) {\
+    h.q0 = m.w.x*a.x + m.w.y*a.y + m.w.z*a.z;\
+    h.q1 = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
+    h.q2 = m.y.x*a.x + m.y.y*a.y + m.y.z*a.z;\
+    h.q3 = m.z.x*a.x + m.z.y*a.y + m.z.z*a.z;}
+
+//Update definitions
+#define update_average(a,b) {a.now =b; a.sum += a.now; a.sumsq += a.now*a.now; a.n++;}
+#define update_blockaver(a) {a.sum /= a.n; a.sumsq = sqrt(a.sumsq/a.n - a.sum*a.sum);}
+#define update_finaver(a,b) {a.sum += b.sum; a.sumsq += b.sum*b.sum;  b.sum = 0; b.sumsq = 0; b.now=0; b.n=0;}
+#define update_blockmc(a,b) {a.acc += b.acc; a.tries += b.tries;  b.acc = 0; b.tries = 0;}
+
+
+#define SWAP(a,b,c) {c=a;a=b;b=c;}
+
+//Periodic Boundary conditions
+#define pbc(a,b) {\
+    do{\
+      if(a.x>(0.5*b.x)) a.x-=b.x;\
+      if(a.x<(-0.5*b.x)) a.x+=b.x;\
+    }while( fabs(a.x)>0.5*fabs(b.x) );\
+    do{\
+      if(a.y>(0.5*b.y)) a.y-=b.y;\
+      if(a.y<(-0.5*b.y)) a.y+=b.y;\
+    }while( fabs(a.y)>0.5*fabs(b.y) );\
+    do{\
+      if(a.z>(0.5*b.z)) a.z-=b.z;\
+      if(a.z<(-0.5*b.z)) a.z+=b.z;\
+      }while( fabs(a.z)>0.5*fabs(b.z) );\
+    }
