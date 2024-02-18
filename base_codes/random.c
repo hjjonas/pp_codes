@@ -39,18 +39,12 @@
 /* Slightly modified by Thijs J.H. Vlugt on 21/12/1998             */
 
 
-#include <stdio.h>
-#include <math.h>
-#include <stdint.h>
 #include <stdbool.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include "path.h"
+#include "path.h" // all other h-files in path.h
 
 
 #define N                     624
