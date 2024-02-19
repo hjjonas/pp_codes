@@ -56,13 +56,7 @@ void setup_simulation() {
     //calculates and prints energy, bonding etc
     printf("\n   calculating energy and bonding of initial configuration:\n");
     terminate_block(&slice[0]);
-
-
-
     printf("Setting up the system is done\n");
-
-
-
     return;
 }
 
@@ -567,6 +561,8 @@ double find_zcut(double fg){
 }
 
 void gravitational_parameters(void){
+    // see B2 of J. Chem. Phys. 155, 034902 (2021); doi: 10.1063/5.0055012 for details
+
     // printf("*** gravitational parameters ****");
     double rho_mixture,rho_TPM;
 
@@ -590,11 +586,16 @@ void gravitational_parameters(void){
             case 1:
             case 2:
                 /*  dipatch particles, */
-                delta_rho_kg_m3 = 60.568460120322576;  //the density diffence between the lutide-water solution and the colloid [kg/m^3]
+                //the density diffence between the lutide-water solution and the colloid [kg/m^3], 
+                // see B2 of 0.1063/5.0055012
+                delta_rho_kg_m3 = 60.568460120322576;  
                 break;
             case 3:
             case 4:
                 /*  tetrapatch particles*/
+                // see B2 of 10.1063/5.0055012, 
+                // and  Z. Gong, T. Hueckel, G.-R. Yi, and S. Sacanna, Nature 550, 234 (2017). 
+                // for the geometry of the TPM and PS ratio
                 delta_rho_kg_m3 = 63.5699387858425;
                 break;
             case NSITES:
@@ -611,7 +612,7 @@ void gravitational_parameters(void){
         ptypen->delta_rho_kg_m3 = delta_rho_kg_m3;
     }
 
-    // Calculate gravity per particle
+    // Calculate gravitational parameters per particle, see 
     for (int n = 0; n < sys.nparticle_types; n++) {
         Particletype *ptypen = &sys.particletype[n];
         double r_micron = ptypen->radius * sys.sigma * 1e6; //the radius of the particle in micron; sigma is given in meter
@@ -688,9 +689,9 @@ void init_simtype(Slice *psl){
     // initialize the module/algorithm dependent parameters 
 
     // when restarting the simulation, you also need to read in a configuration from file
-    if ( (init_conf.restart==1) && (init_conf.start_type!=1)){ 
-        error("you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
-    } 
+    if ( (init_conf.restart==1) && (init_conf.start_type!=1)) error(" you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
+    // if reading trajectory from file, specify how many frames to skip (framerate) in read_path 
+    if ((sys.sim_type==1) && (init_conf.read_path<=0)) error(" if sim_type=1 (i.e. read from file), you need to specify the frame rate in read_path");
 
     switch(sys.sim_type) {
         case MC_ALGORITHM:
@@ -703,11 +704,12 @@ void init_simtype(Slice *psl){
             break;
         default:
             // through an error
+            printf("\n error in the input:\n ***there are only 3 options for the sim_type parameter:*** \n");
+            printf("    BMD               1 \n");
+            printf("    MC                2 \n");
+            printf("    READ TRAJECTORY   3 \n");
             dprint(sys.sim_type);
-            dprint(MC_ALGORITHM);
-            dprint(BMD_ALGORITHM);
-            dprint(READ_TRAJECTORY);
-            error("sys.sim_type can only be MC_ALGORITHM,  BMD_ALGORITHM, or READ_TRAJECTORY");
+            error(" choose an option 1, 2 or 3 ");
             break;
     }
 
@@ -1258,7 +1260,7 @@ void print_particle_properties(){
     int s,n;
     Particletype *part_type;
 
-     for(n=0;n<sys.nparticle_types;n++){
+    for(n=0;n<sys.nparticle_types;n++){
         // each particletype also has a site type (may all be the same though)
         // a particle (yet) cannot have different sites; i.e. all sites on 1 particles are the same
 
@@ -1318,8 +1320,8 @@ void print_particle_properties(){
             printf("         and gravity parameters:\n");
             printf("           gravity factor    %lf \n", sys.gravity);
             printf("           zcut              %lf [sigma]\n", part_type->zcut);
-            printf("          radius            %lf [sigma]\n", part_type->radius);
-            printf("          Fg                %lf [[kT/sigma]]\n", part_type->fg);
+            printf("           radius            %lf [sigma]\n", part_type->radius);
+            printf("           Fg                %lf [[kT/sigma]]\n", part_type->fg);
             printf("           b_zc              %lf [sigma]\n", part_type->b_zc);
         }
         

@@ -8,7 +8,6 @@ void gravitational_force_ipart(Slice *, int );
 void single_bond_force(Slice *, int , int);
 void calculate_total_forces(Slice *);
 void calculate_forces_neighborlist(Slice *);
-// extern void save_old_positions(Slice *, Slice *);
 void gravitational_force_ipart(Slice *, int );
 void derivative_check(Slice *);
 void propagate_bd(Slice *) ;
@@ -30,8 +29,8 @@ void bmdcycle(Slice *psl) {
     //     bond_tracking(psl);
         // printBondTimeInfoArray(bondtimeinfoarray )
     // }
+    if (analysis.print_trajectory) printing_trajectory(&slice[0]); // try to do it every 1 second through langevin.ninter*timestep
 
-    // Exit the function
 }
 
 void propagate_bd(Slice *psl)  {
@@ -39,20 +38,16 @@ void propagate_bd(Slice *psl)  {
     int update=0;
     
     for( int inter=0; inter<langevin.ninter; inter++) {
-        /* calculate the forces on all particles*/
+        /* calculate the forces on all particles, and integrate in time*/
         calculate_total_forces(psl); 
-
         integrate_time(psl,  langevin.timestep, langevin.dtD, &update);
-        if (sys.nearest_neighbor==1 && update) {
+        
+        if ((sys.nearest_neighbor==1 )&& (update)) {
             // printf("Updating the neighborlist\n");
             update_nnlist(psl);
             update =0;
         }
     }
-
-    // always after you have updated the quaternion, update the patch vectors, else you energy /force calculation 
-    // its already done inside calculate_total_forces(psl); 
-    update_patch_vectors(psl);
 
     // cumulative time 
     psl->c_time+=(langevin.timestep*langevin.ninter);
@@ -61,11 +56,11 @@ void propagate_bd(Slice *psl)  {
 }
 
 void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *nn_update){
-
+    // timestep is input parameter, and timestep_randomD is sqrt(2*timestep/beta) (see init.c)
     Pts *psi; 
     Particletype *ptypei;
 
-    vector theta,f,t,u,fa;
+    vector xi,f,t,u,fa;
     quaternion qu1,qu2,qu3,qprime,qua;
     tensor rotmat;
     quattensor Bmat;
@@ -79,17 +74,16 @@ void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *n
 
         //TRANSLATION part due to force
         //DT*F*dt*Beta = muT*F*dT see eqn 9 first term of Ilie2015
-
         scalar_times(psi->f,timestep,f);
         scalar_times(f,langevin.mobilityT,f);
         vector_add(psi->r,f,psi->r);
         if(sys.nearest_neighbor){ vector_add(psi->dr,f,psi->dr); }
 
         //random translation
-        theta=RandomBrownianVector(timestep_randomD); // random fluctuation uses this langevin.dtD=sqrt(2*timestep/beta)
-        scalar_times(theta,langevin.sqrtmobilityT,theta); 
-        vector_add(psi->r,theta,psi->r);
-        if(sys.nearest_neighbor){ vector_add(psi->dr,theta,psi->dr); }
+        xi=RandomBrownianVector(timestep_randomD); // random fluctuation uses this langevin.dtD=sqrt(2*timestep/beta)
+        scalar_times(xi,langevin.sqrtmobilityT,xi); 
+        vector_add(psi->r,xi,psi->r);
+        if(sys.nearest_neighbor){ vector_add(psi->dr,xi,psi->dr); }
         
 
 
@@ -124,11 +118,11 @@ void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *n
         /* ok here you multiply u (torque x timestep x drag) */
         quatmatrix_x_vec(Bmat,u,qu1);
         
-        //Baalpha * (muR) * theta = qu2
-        theta=RandomBrownianVector(timestep_randomD);
-        scalar_times(theta,langevin.sqrtmobilityR,theta);
+        //Baalpha * (muR) * xi = qu2
+        xi=RandomBrownianVector(timestep_randomD);
+        scalar_times(xi,langevin.sqrtmobilityR,xi);
         //Bmat is the matrix representation of the quaternion of the particle at time t
-        quatmatrix_x_vec(Bmat,theta,qu2);
+        quatmatrix_x_vec(Bmat,xi,qu2);
 
         //qprime = qu1+qu2+q(t) for the first time
         quat_add(qu1,qu2,qprime);
@@ -148,6 +142,9 @@ void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *n
             quat_add(qprime,qu3,psi->q);
         }
     }
+    // update the "current" patch vectors after you updated the quaternions. 
+    //This update is specifically necessary when you want to calculate the new forces and torques 
+    update_patch_vectors(psl);
 
     return;
 }
@@ -164,8 +161,6 @@ void calculate_total_forces(Slice *psl) {
         psi = &psl->pts[ipart];
         psi->f = nulvec;
         psi->t = nulvec;
-        //update of patch vectors is aparte function
-        update_patch_vector_ipart(psl, ipart);
          // put all nbonds to zero to restart the tracking of the bonds
         psi->nbonds =0;
     }
@@ -177,8 +172,6 @@ void calculate_total_forces(Slice *psl) {
     else{
         for( ipart=0; ipart<psl->nparts; ipart++ ) {
             for( jpart=ipart+1; jpart<psl->nparts; jpart++ ) {
-                //just give here nulvec as vector, it rij will be calculated if sys.nearest_neighbor!=1
-                // single_bond_force(psl,ipart,jpart, nulvec);
                 single_bond_force(psl,ipart,jpart);
             }
         }
@@ -240,7 +233,7 @@ void activity_force_torque(Slice *psl, int ipart){
         // the angle via asin
         angle=fabs(asin(Fa.z));
 
-        magnitude=500.*angle ;
+        magnitude=500.*angle;
     
         if( magnitude>0){
             // printf("adding active alignment");
