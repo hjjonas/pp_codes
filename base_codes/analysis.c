@@ -90,28 +90,23 @@ void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
     //  By HJ Jonas oktober 2022
     //  it walks over the particles and performs DPF
     //  it makes smart use of a nested loop, by recalling DFS inside DFS, to walk over the structure 
-
+    //  see section 2.5.3 DepthFirstSearch of thesis HJJ
     vector dr;
     int jpart,j_inlist;
 
     // remove ipart from list, else you will find the bond back to ipart. Now you will walk forward to next bond
     removeElementXIntArray(particlesleft_list,  ipart );
 
-    // printf(" particle %d has %d bonds:  \n", ipart, psl->pts[ipart].nbonds);
     // loop over the bound particles of ipart, to see if you have visited them
     for (int n = 0; n < psl->pts[ipart].nbonds; n++){   
         jpart=psl->pts[ipart].bonds[n]; // the bound particles to ipart;
 
         //  did you already visit jpart?
         j_inlist=checkElementXIntArray(particlesleft_list, jpart );
-        // printf(" particle %d and %d make bond (make_bond=%d), && (j_inlist=%d ==1?).  \n", ipart,jpart,make_bond,j_inlist);
         if(j_inlist==1){
-            // printf("   jpart=%d was not visited yet.  \n", ipart,jpart,jpart);
-
-            // new position jpart
-            dr=particles_vector(psl, jpart,ipart); //check if order of( current, next) is correct (direction of vector)
-            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);
-            
+            // new position jpart, and perform DFS on jpart
+            dr=particles_vector(psl, jpart,ipart); 
+            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);     
             DFS( psl,jpart,  particlesleft_list,  copyslice );
         }
     }
@@ -181,8 +176,6 @@ double particles_distance(Slice *psl, int i, int j){
     return r;
 }
 
-
-
 vector particles_vector(Slice *psl, int i, int j){
     /* calculates and returns the vector rij(=ri-rj) between two particles. */
     vector dr;
@@ -240,12 +233,12 @@ void check_maxbonds(Slice *psl){
 int cluster_analysis(Slice *psl){
     /* color all particles white, loop over all other particles (j) color them grey; find bonding particles (with dr and SiSj)*/
     /*particles are in a cluster if they have a bond energy <sys.bond_cutoffE*/
+    // code by PGB
     Pts *psj;
     vector dr,norm;
     int label[psl->nparts],nwhite,notallgreysgone,ngrey,ncluster,nblack,i,j,k, WHITE=1, BLACK=2, GREY=3, id;
     double r,dr2,s,r_radii,  potential_energy_P_d=0;
    
-
     //  count=0;
     notallgreysgone=0;
     ngrey=nblack=ncluster = 0;
