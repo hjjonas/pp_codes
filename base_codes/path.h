@@ -12,14 +12,14 @@
 /*------------------FIXED/HARD CODED MAXIMUM VALUES ------------------------------------*/
 
 #define NPART 1000        // maximum number of particles
-#define NSITES 6          //maximum number of sites on 1 particle
-#define PTYPES 6          //particle types; eg dipatch and tripatch cC potential --> 2 
+#define NSITES 6          // maximum number of sites on 1 particle
+#define PTYPES 6          // particle types; eg dipatch and tripatch cC potential --> 2 
 #define MAXBONDS NSITES   // maximum number of bonds
 
-// to select way to "move the particles" in sys.simtype
+// to select way to "move the particles" with sys.sim_type
+#define BMD_ALGORITHM 1
 #define MC_ALGORITHM 2
-#define BMD_ALGORITHM 0
-#define READ_TRAJECTORY 1
+#define READ_TRAJECTORY 3
 
 
 /*---------------------------------------------------------------------------*/
@@ -30,11 +30,9 @@ typedef struct vector_type {
 } vector;
 
 typedef struct quaternion_type {
-  // see section 2.4.3 RigidBodyRotations&Quaternions of thesis
+  // see section 2.4.3 RigidBodyRotations&Quaternions of thesis HJJ
     double        q0,q1,q2,q3;
 } quaternion;
-
-
 
 typedef struct particletype_type {
   /*there are diffent kind of particle type
