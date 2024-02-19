@@ -24,47 +24,33 @@ int main(int argc, char **argv) {
     // Check the random number generator if specified in parameters
     check_random();
     
-    // // Warm up the Monte Carlo system if specified in parameters
+    // a "warm_up" is performed if you want to attempt to decorrelate the architecture from in input conf. 
+    // the bond are not allowed to break or form, but positions/orientations of particles are
     if (init_conf.mc_warmup > 0) {
         mc_warmup(&slice[0]);
     }
 
-    // Outer loop for the number of cycles specified in parameters
+    // sys.ncycle1 there are measurements performed (outer loop)
     for (int icycle = 0; icycle < sys.ncycle1; icycle++) {
         
         // Print block number
         printf("\nBLOCK %d\n", icycle);
         
-        // Inner loop for the number of cycles specified in parameters
+        // Inner loop : decorrelate / propagate the system
         for ( int jcycle = 0; jcycle < sys.ncycle2; jcycle++) {
-            
-            // If reading path from file is specified in parameters
-            if (init_conf.read_path > 0) {
-                
-                // Read coordinates from file
-                read_coordinates_from_file(&slice[0], init_conf.read_path*(icycle*sys.ncycle2+jcycle));
-
-            // If running Brownian dynamics simulation is specified in parameters
-            } else if (sys.sim_type == BMD_ALGORITHM) {
-                
-                // Run Brownian dynamics cycle
-                bmdcycle(&slice[0]);
-                
-                // If printing trajectory is specified in parameters
-                if (analysis.print_trajectory){
-                    printing_trajectory(&slice[0]); // try to do it every  1 second
-                }
-            
-            // If running Monte Carlo simulation is specified in parameters
-            } else if (sys.sim_type == MC_ALGORITHM) {
-                
-                // Run Monte Carlo cycle
-                mccycle(&slice[0]);
-            
-            // Otherwise, print error message
-            } else {
-                error("choose only MC = sys.sim_type==2 or bmd = sys.sim_type==0"); 
+            switch (sys.sim_type) {
+                case READ_TRAJECTORY:
+                    read_coordinates_from_file(&slice[0], init_conf.read_path*(icycle*sys.ncycle2+jcycle));
+                    break;
+                case BMD_ALGORITHM:
+                    bmdcycle(&slice[0]);
+                    break;
+                case MC_ALGORITHM:
+                    mccycle(&slice[0]);
+                    break;
             }
+            // perform version specific analysis here;
+            innerloop_analysis(pls);
 
         }
 
@@ -76,7 +62,7 @@ int main(int argc, char **argv) {
         time_t block2_0 ;
         double datetime_diff2 = difftime(block2_1, block2_0);
         printf("This block took %lf [sec]\n", datetime_diff2);
-         block2_0 =block2_1;
+        block2_0 =block2_1;
 
     }
 
@@ -86,7 +72,7 @@ int main(int argc, char **argv) {
     // Print total time for program
     time_t t1 = time(0);
     double datetime_diff = difftime(t1, t0);/* in seconds*/
-    printf("Total time [min] %lf\n", datetime_diff/60.); 
+    printf("\n\nTotal time [min] %lf\n", datetime_diff/60.); 
 
     // End program
     // free_all_memory();
