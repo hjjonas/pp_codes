@@ -47,7 +47,7 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     memcpy(copyslice, psl, sizeof(Slice));
 
     Picl pici=cluster.pic[icluster];
-    IntArray particlesleft_list; //,branchlist;     
+    IntArray particlesleft_list; //
 
     //initiate particlesleft_list (filled)
     initIntArray(&particlesleft_list,  (size_t) clusteri_size);
@@ -57,10 +57,9 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     
     // printf("whole array of particles_left\n");
     // you will need to loop over the bonds, because the boundaries are crossed by the structure
-    //start from ipart_ref; 
+    // start from ipart_ref; 
     ipart=ipart_ref; 
-    // newpos[current].r=psl->pts[current].r; // the starting point/particle, check if it is a " branchpoint", you need to go backwards too
-    removeElementXIntArray( &particlesleft_list ,  ipart); //remove current from particlesleft
+    removeElementXIntArray( &particlesleft_list ,  ipart); //remove current(=ipart) from particlesleft list
 
     // walk untill you reach particle with 1 bond or run into a particles thats not in the list. 
     for ( i=0; i<psl->pts[ipart].nbonds ; i++ ){
@@ -69,7 +68,7 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
         // printf(" perform DFS with   start from particle %d \n", start);
         if (checkElementXIntArray(&particlesleft_list, jpart )==1){
             // new position next
-            dr=particles_vector(psl, ipart, jpart); //check if order of( current, next) is correct (direction of vector)
+            dr=particles_vector(psl, ipart, jpart); //return vector from i to j
             vector_minus(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r); // of course dont do pbc after this step! 
 
             DFS( psl,jpart,  &particlesleft_list ,copyslice );
@@ -105,7 +104,7 @@ void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
         j_inlist=checkElementXIntArray(particlesleft_list, jpart );
         if(j_inlist==1){
             // new position jpart, and perform DFS on jpart
-            dr=particles_vector(psl, jpart,ipart); 
+            dr=particles_vector(psl, ipart, jpart); // points from i to j
             vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);     
             DFS( psl,jpart,  particlesleft_list,  copyslice );
         }
@@ -177,10 +176,11 @@ double particles_distance(Slice *psl, int i, int j){
 }
 
 vector particles_vector(Slice *psl, int i, int j){
-    /* calculates and returns the vector rij(=ri-rj) between two particles. */
+    /* calculates and returns the vector rij(=ri-rj) between two particles. 
+        return vector from i pointing to j*/
     vector dr;
 
-    vector_minus(psl->pts[i].r,psl->pts[j].r,dr); /* dr of particle j and k */
+    vector_minus(psl->pts[j].r,psl->pts[i].r,dr); /* dr of particle j and k */
     pbc(dr, sys.boxl); 
     
     return dr;  
