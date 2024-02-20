@@ -17,7 +17,7 @@ void printstatusmc_sub(MC *);
 
 
 void mccycle(Slice *psl) {
-    /*sys.sim_type==2
+    /*sys.sim_type==MC_ALGORITHM
     This function, mccycle, is a Monte Carlo cycle which performs a series of 
     single particle moves or cluster moves depending on a random number generator. 
     The function takes a pointer to a Slice struct as its only argument.*/
@@ -821,8 +821,8 @@ void setup_MC(void){
     printf("\nSetting up the MC parameters... ");
     //Monte Carlo; there is only MC in this code...
 
-    if (sys.nearest_neighbor==1 & sys.sim_type==MC_ALGORITHM ){
-        error("nearest_neighbor and MC do not go together!");
+    if ((sys.nearest_neighbor==1) & (sys.sim_type==MC_ALGORITHM) ){
+        error("nearest_neighbor and MC cannot go together! turn nearest_neighbor off ");
     }
 
     psl_old=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC

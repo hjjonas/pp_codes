@@ -691,7 +691,7 @@ void init_simtype(Slice *psl){
     // when restarting the simulation, you also need to read in a configuration from file
     if ( (init_conf.restart==1) && (init_conf.start_type!=1)) error(" you are usign a restart time, but init_conf.start_type!=1. contradicting settings"); 
     // if reading trajectory from file, specify how many frames to skip (framerate) in read_path 
-    if ((sys.sim_type==1) && (init_conf.read_path<=0)) error(" if sim_type=1 (i.e. read from file), you need to specify the frame rate in read_path");
+    if ((sys.sim_type==READ_TRAJECTORY) && (init_conf.read_path<=0)) error(" if sim_type=1 (i.e. read from file), you need to specify the frame rate in read_path");
 
     switch(sys.sim_type) {
         case MC_ALGORITHM:
