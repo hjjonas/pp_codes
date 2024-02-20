@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
                     break;
             }
             // perform version specific analysis here;
-            innerloop_analysis(pls);
+            // innerloop_analysis(pls);
 
         }
 
@@ -170,26 +170,6 @@ void read_coordinates_from_file(Slice *current, int block_number){
     return;
 }
 
-
-// // this is a very specific function .. 
-void free_all_memory(void){
-
-    printf("free_all_memory\n");
-
-    // do something with this 
-
-    // free(&slice[0]);
-    // free(&start_slice[0]);
-    // freeBondTimeInfoArray(bondtimeinfoarray);
-
-    // if (sys.sim_type==MC_ALGORITHM){
-    //     free(&psl_old[0]);
-    // }
-
-}
-
-
-
 void mc_warmup(Slice *psl){
  // Use mc_warmup to decorrelate from the input structure; perform MC moves without bond breakages
     printf("*********  mc_warmup is on:  equilibrating with MC ********\n");
@@ -216,7 +196,7 @@ void mc_warmup(Slice *psl){
         // Print status and optimize MC
         printstatusmc();
         optimizemc();
-        printenergy_warmup(psl);
+        printenergy(psl, "_warmup");
 
         // Check for bond breakage
         if (psl->nbonds!=start_slice->nbonds){
