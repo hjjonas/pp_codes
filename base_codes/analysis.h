@@ -35,7 +35,9 @@ typedef struct statslength_type {
 
     char          filename[100];
 
-    Statistics    bin[NPART];
+    int           length;
+
+    Statistics    *bin; // perform a dynamic memory allocation of length lenth 
 
 } StatsLength;
 
@@ -52,10 +54,10 @@ typedef struct cluster_type{
   to find the stack */
 
     int           analysis,
-                  clustersize[NPART], 
+                  clustersizes[NPART],  // this is a list which tells you how many particles the cluster with clusterid "id" is 
                   update; 
 
-    struct particles_in_cluster_list_type     pic[NPART];
+    struct particles_in_cluster_list_type     pic[NPART]; // this struct will tell you which particles are in a specific cluster
 
     StatsLength   size_histogram,
                   size_distribution;
