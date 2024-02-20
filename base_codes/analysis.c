@@ -1,6 +1,6 @@
-/*-------------------------------------------------------*/
-/*  here are analysis function that are NOT specific to a certain simulation or project */
-/*-------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------*/
+/*      here are analysis function that are NOT specific to a certain simulation or project */
+/*---------------------------------------------------------------------------------------------------------*/
 
 #include "path.h"
 
@@ -40,7 +40,7 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     // if a structure crossed the pbc, rotating it is not straightforward. 
     // with this fucntion you first check if structure crosses pbc ; are there particles 1 isgma from the border? in the 2D plane
     int i,ipart,jpart;
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
     vector dr; 
   
     Slice *copyslice = malloc(sizeof(Slice));
@@ -186,26 +186,7 @@ vector particles_vector(Slice *psl, int i, int j){
     return dr;  
 }
 
-void clustersize_freq_update(Slice *psl){
-    /*this function saves the frequency of occurence of the clusterlengths  */
 
-    int i,l;
-    int   freq_clusterlength[NPART]={0};
-    
-    for(i=0;i<psl->nclusters;i++){
-        freq_clusterlength[cluster.clustersize[i]-1]++; // use -1 here because size one is the smallest size
-    } 
-
-    for(l=0;l<psl->nparts;l++){
-        /*loops over the lengths which has maximumvalue of psl->nparts*/
-        // update_average(chain.length_histogram[i], freq_clusterlength[i]);
-        
-        running_statistics(&cluster.size_histogram.bin[l], freq_clusterlength[l]);
-        running_statistics(&cluster.size_distribution.bin[l], (double)freq_clusterlength[l]/psl->nclusters);
-    } 
-
-    return; 
-}
 
 
 
@@ -290,16 +271,16 @@ void clustersize_identification(Slice *psl){
     and counts how many clusters of a certain size there are in cluster.clustersize.*/
     int id,ipart, nclusters=psl->nclusters, n;
     Picl pici;
-    int  clustersize[NPART]={0};
+    int  clustersizes[NPART]={0};
 
     // printf("loop over all particles en deel ze in in een picl\n" );
     //loop over all particles en deel ze in in een picl 
     for(ipart=0;ipart<psl->nparts;ipart++){
         id = psl->pts[ipart].cluster_id;
-        cluster.pic[id].stack[clustersize[id]]=ipart;
-        clustersize[id]++;
+        cluster.pic[id].stack[clustersizes[id]]=ipart;
+        clustersizes[id]++; // this is a list which tells you how many particles the cluster with clusterid "id" is 
     }
-    memcpy(cluster.clustersize, clustersize, sizeof(clustersize));
+    memcpy(cluster.clustersizes, clustersizes, sizeof(clustersizes));
 
     return;
 }
