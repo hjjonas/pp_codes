@@ -318,7 +318,7 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     // icluster=(int)(RandomNumber()*nclusters);
     icluster = RandomIntegerRange(0,nclusters);
     if (icluster==nclusters) error("icluster==nclusters in translate cluster ");
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
 
 
 
@@ -357,7 +357,7 @@ int translatepart_cluster_Ekparts(Slice *psl) {
 
     /*check if any particle is put into the wall (z<1.0), than always reject. No need to calculate the energy.*/
     if(sys.gravity>0){
-        for(i=0; i<cluster.clustersize[icluster]; i++){
+        for(i=0; i<cluster.clustersizes[icluster]; i++){
             ipart= cluster.pic[icluster].stack[i];
             if(psl_old->pts[ipart].r.z>=1.){
                 if(particle_in_wall(psl,ipart)==1){
@@ -439,7 +439,7 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
     /*select a cluster randomly*/
     icluster=(int)(RandomNumber()*nclusters);
     if (icluster==nclusters) error("icluster==nclusters in rotate cluster ");
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
 
 
     if(clusteri_size==1){
@@ -589,7 +589,7 @@ int rotate_monocluster(Slice *psl, int icluster){
 
 void copy_clusterparticles( Slice *psl_new ,Slice *psl_source,int icluster){
     // copies the particles in icluster from psl_source to psl_new
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
     int ipart;
 
     /*perform copy on selected particles */
@@ -629,7 +629,7 @@ int energy_divergence_check(Slice *psl, char loc[50]){
 }
 
 int check_internal_energy(Slice *psl_new,Slice *psl_old, int icluster, char movetype[100]){
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
     double Ebond_new,Ebond_old;
     int cluster_error=0;
 
@@ -729,7 +729,6 @@ void printstatusmc() {
 
 void optimizemc_sub(MC *mctype) {
 
-    /*single particle moves*/
     static int initiate=1;
 
     if (initiate ){
@@ -740,34 +739,21 @@ void optimizemc_sub(MC *mctype) {
     mctype->rot.ratio=(double)mctype->rot.acc/(double)mctype->rot.tries;
     mctype->trans.ratio=(double)mctype->trans.acc/(double)mctype->trans.tries;
 
-    /*update the total accepted, tried translate or rotate moves*/
+    /*update the total accepted, tried translate or rotate moves. */
     mctype->finrot.acc+=mctype->rot.acc;
     mctype->finrot.tries+=mctype->rot.tries;
     mctype->fintrans.acc+=mctype->trans.acc;
     mctype->fintrans.tries+=mctype->trans.tries;
-    // printf("ratio = %d / %.d\n",rot.acc,rot.tries);
     
-    /*set accept. and tries to zero*/
-    mctype->rot.acc=0;
-    mctype->rot.tries=0;
-
-    mctype->trans.acc=0;
-    mctype->trans.tries=0;
+    
    
-    // printf("%s\n", mctype->name);
+    // update the max translation and rotation
     /*rotation*/
     if((mctype->rot.ratio<0.3 )&& (mctype->dqmax>0.0001)) {
-        // printf(" rot decrease\n");
-        // gprint(mctype->rot.ratio);
         mctype->dqmax/=1.1;
-        // gprint(mctype->dqmax);
     }
     else if((mctype->rot.ratio>0.7) && (mctype->dqmax<179)) {
-        // printf(" rot increase\n");
-        // gprint(mctype->rot.ratio);
-
         mctype->dqmax*=1.1;
-         // gprint(mctype->dqmax);
     }
     else if(mctype->dqmax>180){
         mctype->dqmax=180.;
@@ -779,11 +765,17 @@ void optimizemc_sub(MC *mctype) {
     }
     else if((mctype->trans.ratio>0.7) && (mctype->drmax<=sys.boxl.x)) {
         mctype->drmax*=1.1;
-        // gprint(mctype->drmax);
     }
     else if (mctype->drmax>sys.boxl.x){
         mctype->drmax=sys.boxl.x;
     }
+
+    /*set accept. and tries to zero*/
+    mctype->rot.acc=0;
+    mctype->rot.tries=0;
+
+    mctype->trans.acc=0;
+    mctype->trans.tries=0;
     
 
     return;
@@ -803,7 +795,6 @@ void optimizemc() {
     if(sys.cluster_MC==1){
         optimizemc_sub(&mc_cluster);
         optimizemc_sub(&mc_mono);
-
     }
 
     return;
