@@ -27,7 +27,7 @@ void terminate_block(Slice *psl) {
         In some versions of the code, you want to know information about the first snapshot. So this information will always be available in this slice.
     */
         
-    static int init=1, teller=0;
+    static int init=1;
     
     // printf("terminate_block\n")
     psl->energy=total_energy(psl);
@@ -90,6 +90,7 @@ void count_empty_clusters_monomers(Slice *psl, int *emptyc, int *nmono){
 }
     
 void print_clusterinformation(Slice *psl ){
+    // prints the cluster id and the particles belonging to that cluster to the screen
     for(int id=0;id<psl->nclusters;id++){
         printf("   ID # %d \\w %d particles:   ", id, cluster.clustersizes[id]);
         for (int n=0;n<cluster.clustersizes[id];n++){
@@ -124,12 +125,12 @@ void finalstat(Slice *psl) {
     // printf("starting with finalstat\n");
     printf("\nFinished Simulation\n");
 
-
-    if(sys.sim_type==0) {
+    switch (sys.sim_type)
+    {
+    case BMD_ALGORITHM:
         printstatusbmd(psl); // print the energy
-
-    }
-    else if(sys.sim_type==2) {
+        break;
+    case MC_ALGORITHM:
         printf("\n*** MC stats **\n");
         optimizemc();
         final_printstatusmc_sub(mc_single);
@@ -139,9 +140,7 @@ void finalstat(Slice *psl) {
             final_printstatusmc_sub(mc_mono);
         }
     }
-    else{
-        error("use only simtype 2 for MC or 0 for bmd");
-    }
+    
     
     //  print RDF to file if rdfanalysis is turned on
     // if(sys.rdfanalysis==1){
@@ -158,7 +157,7 @@ void print_slice_information(Slice *psl){
     printf("            energy               %10.10lf\n",psl->energy);
     printf("            nbonds               %d\n",psl->nbonds);
     printf("            nparts               %d\n",psl->nparts);
-    if (sys.sim_type==0){
+    if (sys.sim_type==BMD_ALGORITHM){
     printf("             c_time               %10.10lf\n",psl->c_time);
     }
 

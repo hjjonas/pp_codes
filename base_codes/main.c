@@ -2,7 +2,7 @@
 
 Slice        *slice, *psl_old, *start_slice, *copyslice;
 System       sys;
-vector        nulvec;
+vector       nulvec;
 
 
 

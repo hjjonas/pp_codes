@@ -15,7 +15,7 @@ void propagate_bd(Slice *) ;
 
 
 void bmdcycle(Slice *psl) {
-    /*sys.sim_type==0 Brownina Dynamics*/
+    /*sys.sim_type==BMD_ALGORITHM Brownina Dynamics*/
     int istep, update=0, ipart;
     double dr2;
 
