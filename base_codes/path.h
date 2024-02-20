@@ -13,11 +13,11 @@
 
 #define NPART 1000        // maximum number of particles
 #define NSITES 6          // maximum number of sites on 1 particle
-#define PTYPES 6          // particle types; eg dipatch and tripatch cC potential --> 2 
-#define MAXBONDS NSITES   // maximum number of bonds
+#define PTYPES 6          // particle types; eg dipatch and tripatch cC potential 
+#define MAXBONDS NSITES   // maximum number of bonds per particle
 
 // to select way to "move the particles" with sys.sim_type
-#define BMD_ALGORITHM 1
+#define BMD_ALGORITHM 1  
 #define MC_ALGORITHM 2
 #define READ_TRAJECTORY 3
 
@@ -146,6 +146,7 @@ typedef struct slice_type {
 #include "mc.h"
 #include "energy.h"
 #include "bmd.h"
+#include "version_specific_functions.h"
 
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
@@ -193,7 +194,6 @@ extern void update_patch_vector_ipart(Slice *, int );
 extern void update_patch_vectors(Slice *);
 extern void read_coordinates_from_file(Slice *, int );
 // extern void free_all_memory(void); 
-// extern void linking_all_cluster(Slice *);
 
 
 
@@ -204,12 +204,12 @@ extern void read_coordinates_from_file(Slice *, int );
 #define FALSE 0
 #define CANCELLED -99
 
-#define P_INDEX(ptr)  (ptr - pts)
-#define F_COMP(a,b) (fabs( a-b ) < 1e-10)
+#define P_INDEX(ptr)    (ptr - pts)
+#define F_COMP(a,b)     (fabs( a-b ) < 1e-10)
 #define MIN(a,b,tmp)    (  (tmp=a) < b  ? tmp : b )
 #define MAX(a,b,tmp)    (  (tmp=a) > b  ? tmp : b )
-#define MESSAGE(a) printf("Message:"#a"\n")
-#define SIGN(a)   ( 2*(a>0) -1) 
+#define MESSAGE(a)      printf("Message:"#a"\n")
+#define SIGN(a)         ( 2*(a>0) -1) 
 
 #define max(a,b) \
     ({ __typeof__ (a) _a = (a); \
@@ -238,18 +238,18 @@ extern void read_coordinates_from_file(Slice *, int );
 #define getName(var)  #var
 
 //Vector definitions
-#define vector_inp(a, b) (a.x * b.x + a.y * b.y + a.z * b.z )
-#define vector_cross(a,b,h)   h.x = a.y * b.z - a.z * b.y; h.y = a.z * b.x - a.x * b.z; h.z = a.x * b.y - a.y * b.x;
-#define vector_times(a,b,h)   h.x = a.x * b.x; h.y = a.y * b.y; h.z = a.z * b.z;
-#define vector_divide(a,b,h)   h.x = a.x / b.x; h.y = a.y / b.y; h.z = a.z / b.z;
-#define vector_plustimes(a,b,h)   h.x += a.x * b.x; h.y += a.y * b.y; h.z += a.z * b.z;
-#define vector_mintimes(a,b,h)   h.x -= a.x * b.x; h.y -= a.y * b.y; h.z -= a.z * b.z;
-#define scalar_times(a,b,h)  h.x = a.x *b; h.y =a.y * b; h.z = a.z * b;  
-#define scalar_divide(a,b,h)  h.x = a.x /b; h.y =a.y / b; h.z = a.z / b;  
-#define scalar_plustimes(a,b,h)  h.x += a.x *b; h.y +=a.y * b; h.z += a.z * b;  
+#define vector_inp(a, b)        (a.x * b.x + a.y * b.y + a.z * b.z )
+#define vector_cross(a,b,h)     h.x = a.y * b.z - a.z * b.y; h.y = a.z * b.x - a.x * b.z; h.z = a.x * b.y - a.y * b.x;
+#define vector_times(a,b,h)     h.x = a.x * b.x; h.y = a.y * b.y; h.z = a.z * b.z;
+#define vector_divide(a,b,h)    h.x = a.x / b.x; h.y = a.y / b.y; h.z = a.z / b.z;
+#define vector_plustimes(a,b,h) h.x += a.x * b.x; h.y += a.y * b.y; h.z += a.z * b.z;
+#define vector_mintimes(a,b,h)  h.x -= a.x * b.x; h.y -= a.y * b.y; h.z -= a.z * b.z;
+#define scalar_times(a,b,h)     h.x = a.x *b; h.y =a.y * b; h.z = a.z * b;  
+#define scalar_divide(a,b,h)    h.x = a.x /b; h.y =a.y / b; h.z = a.z / b;  
+#define scalar_plustimes(a,b,h) h.x += a.x *b; h.y +=a.y * b; h.z += a.z * b;  
 #define scalar_mintimes(a,b,h)  h.x -= a.x *b; h.y -=a.y * b; h.z -= a.z * b;  
-#define vector_add(a,b,h)  {h.x = a.x +b.x; h.y =a.y + b.y; h.z = a.z + b.z;  }
-#define vector_minus(a,b,h) { h.x = a.x - b.x; h.y =a.y - b.y; h.z = a.z - b.z;  }
+#define vector_add(a,b,h)       {h.x = a.x +b.x; h.y =a.y + b.y; h.z = a.z + b.z;  }
+#define vector_minus(a,b,h)     { h.x = a.x - b.x; h.y =a.y - b.y; h.z = a.z - b.z;  }
 #define matrix_x_vector(m,a,h) {\
     h.x = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
     h.y = m.y.x*a.x + m.y.y*a.y + m.y.z*a.z;\
@@ -262,17 +262,17 @@ extern void read_coordinates_from_file(Slice *, int );
 
 //Quaternion definitions
     /* never use b and h the same variable*/
-#define quat_add(a,b,h) { h.q0=a.q0+b.q0; h.q1=a.q1+b.q1; h.q2=a.q2+b.q2; h.q3=a.q3+b.q3; }
-#define quat_minus(a,b,h) { h.q0=a.q0-b.q0; h.q1=a.q1-b.q1; h.q2=a.q2-b.q2; h.q3=a.q3-b.q3;}
-#define quat_inp(a,b) (a.q0*b.q0 + a.q1*b.q1 + a.q2*b.q2 + a.q3*b.q3)
+#define quat_add(a,b,h)     { h.q0=a.q0+b.q0; h.q1=a.q1+b.q1; h.q2=a.q2+b.q2; h.q3=a.q3+b.q3; }
+#define quat_minus(a,b,h)   { h.q0=a.q0-b.q0; h.q1=a.q1-b.q1; h.q2=a.q2-b.q2; h.q3=a.q3-b.q3;}
+#define quat_inp(a,b)       (a.q0*b.q0 + a.q1*b.q1 + a.q2*b.q2 + a.q3*b.q3)
 #define sctimes_quat(a,b,h) { h.q0=a.q0*b; h.q1=a.q1*b; h.q2=a.q2*b; h.q3=a.q3*b;}
-#define scdivide_quat(a,b,h) { h.q0=a.q0/b; h.q1=a.q1/b; h.q2=a.q2/b; h.q3=a.q3/b; }
+#define scdivide_quat(a,b,h){ h.q0=a.q0/b; h.q1=a.q1/b; h.q2=a.q2/b; h.q3=a.q3/b; }
 #define quat_times(a,b,h) {\
     h.q0 = a.q0*b.q0 - a.q1*b.q1 - a.q2*b.q2 - a.q3*b.q3;\
     h.q1 = a.q0*b.q1 + a.q1*b.q0 + a.q2*b.q3 - a.q3*b.q2;\
     h.q2 = a.q0*b.q2 - a.q1*b.q3 + a.q2*b.q0 + a.q3*b.q1;\
     h.q3 = a.q0*b.q3 + a.q1*b.q2 - a.q2*b.q1 + a.q3*b.q0;} 
-#define quat_inverse(a,h) {h.q0 = a.q0; h.q1 = -a.q1; h.q2 = -a.q2; h.q3 = -a.q3;}
+#define quat_inverse(a,h)   {h.q0 = a.q0; h.q1 = -a.q1; h.q2 = -a.q2; h.q3 = -a.q3;}
 #define quatmatrix_x_vec(m,a,h) {\
     h.q0 = m.w.x*a.x + m.w.y*a.y + m.w.z*a.z;\
     h.q1 = m.x.x*a.x + m.x.y*a.y + m.x.z*a.z;\
