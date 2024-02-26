@@ -43,8 +43,8 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     int clusteri_size=cluster.clustersizes[icluster];
     vector dr; 
   
-    Slice *copyslice = malloc(sizeof(Slice));
-    memcpy(copyslice, psl, sizeof(Slice));
+    Slice *cp_slice = malloc(sizeof(Slice));
+    memcpy(cp_slice, psl, sizeof(Slice));
 
     Picl pici=cluster.pic[icluster];
     IntArray particlesleft_list; //
@@ -69,9 +69,9 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
         if (checkElementXIntArray(&particlesleft_list, jpart )==1){
             // new position next
             dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
-            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r); // of course dont do pbc after this step! 
+            vector_add(cp_slice->pts[ipart].r,dr,cp_slice->pts[jpart].r); // of course dont do pbc after this step! 
 
-            DFS( psl,jpart,  &particlesleft_list ,copyslice );
+            DFS( psl,jpart,  &particlesleft_list ,cp_slice );
         }
     }
     
@@ -79,12 +79,12 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     freeIntArray(&particlesleft_list);
 
     //copy new structure to psl;
-    memcpy(psl,copyslice,  sizeof(Slice));
-    free(copyslice);
+    memcpy(psl,cp_slice,  sizeof(Slice));
+    free(cp_slice);
     return;
 }
 
-void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
+void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *cp_slice ){
     //  Depth First Search  adapted from https://www.codewithharry.com/videos/data-structures-and-algorithms-in-hindi-89/
     //  By HJ Jonas oktober 2022
     //  it walks over the particles and performs DPF
@@ -105,13 +105,15 @@ void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
         if(j_inlist==1){
             // new position jpart, and perform DFS on jpart
             dr=particles_vector(psl,  ipart, jpart ); // points from i to j
-            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);     
-            DFS( psl,jpart,  particlesleft_list,  copyslice );
+            vector_add(cp_slice->pts[ipart].r,dr,cp_slice->pts[jpart].r);    
+            DFS( psl,jpart,  particlesleft_list,  cp_slice );
         }
     }
 
     return;
 }
+
+
 
 
 int bond_check(Slice *psl, int i, int j){

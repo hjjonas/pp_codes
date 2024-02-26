@@ -12,8 +12,15 @@ void version_specific_analysis(Slice *psl){
 	// this funciton is located inside terminate_block() at the outerloop in main.c	
 
 
-	// print_StatsLength_to_file(&cluster.size_histogram);
-	print_StatsLength_to_file(&cluster.size_distribution);
+	
+	if(cluster.analysis==1){
+        // the histogram is the same as size_distribution, but not normalized
+        // print_StatsLength_to_file(&cluster.size_histogram); 
+         print_StatsLength_to_file(&cluster.size_distribution);}
+
+    // set to 1 if you want to print the xy postion of the chain to file
+    //  make sure that analysis.bond_breakage=0 to keep the chain intact
+    if ((analysis.xy_print==1) && (analysis.bond_breakage==0)) print_xy_positions(psl);
 
 }
 
@@ -68,12 +75,11 @@ void free_all_memory(void){
 	free(&slice[0]);
 
 	if (sys.sim_type==MC_ALGORITHM){
-        free(&psl_old[0]);
+        free(&cp_slice[0]);
     }
 
 	return;
 }
-
 
 void print_xy_positions(Slice *psl){
     // x   y   fx  fy  particle    time
@@ -167,12 +173,8 @@ void print_xy_positions(Slice *psl){
                 fprintf(posfile,"%d,%.5lf,%.5lf,0.0,0.0,%d,%.5lf\n", linecount_xypos,v_new.x, v_new.y,ipart ,cycle_mc);
                 linecount_xypos++;
             }   
-            else if(sys.sim_type==BMD_ALGORITHM){ //bmd
+            else if(sys.sim_type==BMD_ALGORITHM){ //bmd, also print forces
                 matrix_x_vector(R, psl->pts[ipart].f, f_new);
-                // vprint(psl->pts[ipart].f);
-                // gprint(vector_inp(psl->pts[ipart].f,psl->pts[ipart].f));
-                // vprint(f_new);
-                // gprint(vector_inp(f_new,f_new));
                 fprintf(posfile,"%d,%.5lf,%.5lf,%.5lf,%.5lf,%d,%.5lf\n", linecount_xypos ,v_new.x, v_new.y,f_new.x,f_new.y,ipart ,psl->c_time);
                 linecount_xypos++;
             }         

@@ -1,6 +1,6 @@
 #include "path.h"
 
-Slice        *slice, *psl_old, *start_slice, *copyslice;
+Slice        *slice, *cp_slice, *start_slice, *copyslice;
 System       sys;
 vector       nulvec;
 

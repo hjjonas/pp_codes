@@ -13,6 +13,8 @@ int translatepart_cluster_Ekparts(Slice *);
 void propagate_mc( Slice * );
 void cluster_propagate_mc(Slice * );
 void printstatusmc_sub(MC *);
+void tailflipping(Slice *);
+void DFS_tailflip(Slice *,int , IntArray *, Slice * , tensor , quaternion );
 /*---------------------------------------------------------------------------*/
 
 
@@ -141,6 +143,14 @@ void propagate_mc(Slice *psl) {
         movetype =  RandomIntegerRange(0, 2);
         single_particle_move(psl, movetype);
     }
+
+    if ((analysis.xy_print==1) && (analysis.bond_breakage==0)) {
+        // if you want to measure the bending ridigity of a chain
+        // NOTE:    code doesn't check if the input is a chain. 
+        //          this an easily be done setting start_type=2 in the input
+        tailflipping(psl);
+    }
+
     return;
 }
 
@@ -264,6 +274,176 @@ void single_particle_move(Slice *psl, int r_or_t){
     return;
 }
 
+/*_________________TAIL FLIPPING OF CHAIN_____________________________*/
+
+void tailflipping(Slice *psl){
+    /* choose a random colloid in the chain and flip the tail around the axis */
+    quaternion dq, dqrot;
+    tensor R;
+    vector dr, rotvec;
+    
+    int ipart_ref, nclusters=psl->nclusters, icluster, ref_random;
+    int  nbonds_old=0, nbonds_new=0, tot_nbonds;
+    int ipart,jpart,i,n,direction;
+
+    double Eold=0., Enew=0., Ebond_new, Ebond_old, Edif;
+    Pts p_ref;
+
+    /*select a cluster randomly*/
+    icluster=(int)(RandomNumber()*nclusters);
+    int clusteri_size=cluster.clustersizes[icluster];
+    int cluster_nbonds = clusteri_size-1;
+
+
+    // /* only multi particle clusters */
+    if(clusteri_size==1){
+        return;
+    }
+
+    /*save old energy, nbonds, positions*/
+    for(i=0; i<clusteri_size; i++){
+        ipart=cluster.pic[icluster].stack[i];
+        Eold+=particle_energy(psl,  ipart, 0)  ;
+        nbonds_old+=(psl->pts[ipart].nbonds);
+    }
+
+    /* save oldparticles*/
+    // the copy is used to make the new coordinates
+    Slice *cp_slice = malloc(sizeof(Slice));
+    memcpy(cp_slice, psl, sizeof(Slice));
+
+    /*pick randomly a reference particle*/
+    ref_random= (int)(RandomNumber()*clusteri_size);
+    ipart_ref = cluster.pic[icluster].stack[ref_random];
+    p_ref = psl->pts[ipart_ref];
+
+
+    /*the rotation quaternion and matrix based on the patchvector of the ref particle*/
+    dq=RotateQuaternion(p_ref.patchvector[0],PI); 
+    R = getrotmatrix(dq); 
+    mc_tailflip.rot.tries++; 
+
+    /*rotate the tail*/
+    /*loop over the tail atoms, if there are none, reverse to head*/
+    // step 1, make a list of all the particles in the chain 
+    Picl pici=cluster.pic[icluster];
+    IntArray particlesleft_list; //
+
+    //initiate particlesleft_list (filled)
+    initIntArray(&particlesleft_list,  (size_t) clusteri_size);
+    for(i=0; i<clusteri_size; i++){         
+        insertIntArray(&particlesleft_list, pici.stack[i]);
+    }
+    // remove the reference particle
+    removeElementXIntArray( &particlesleft_list ,  ipart_ref);
+
+    // step 2, walk over the bonds till you reach the end
+    // walk untill you reach particle with 1 bond or run into a particles thats not in the list. 
+    direction=RandomIntegerRange(0, psl->pts[ipart_ref].nbonds); // randomly select forward or backward
+    jpart=psl->pts[ipart_ref].bonds[direction];
+    
+
+    if (checkElementXIntArray(&particlesleft_list, jpart )==1){
+        // perform the tailflip here: 
+        dr=particles_vector(psl,  ipart_ref, jpart); //return vector from ipart to jpart
+        matrix_x_vector(R, dr, rotvec);
+        vector_add(rotvec, cp_slice->pts[ipart_ref].r, cp_slice->pts[jpart].r)
+    
+        /* rotate the quaternion*/
+        quat_times(dq,cp_slice->pts[jpart].q,dqrot);
+        cp_slice->pts[jpart].q = dqrot;
+        update_patch_vector_ipart(cp_slice,jpart); 
+
+        DFS_tailflip( psl,jpart,  &particlesleft_list ,cp_slice , R, dq);
+    }
+
+    if(sys.gravity>0){
+        for(i=0; i<cluster.clustersizes[icluster]; i++){
+            ipart= cluster.pic[icluster].stack[i];
+            if((psl->pts[ipart].r.z>=1.) && (particle_in_wall(cp_slice,ipart)==1)){
+                memcpy(psl,cp_slice, sizeof(Slice));
+                freeIntArray(&particlesleft_list);
+                free(cp_slice);
+                return ;   
+            }
+        }
+    }
+
+    /*calc new  energy, nbonds*/
+    /* perform energy caluclation always without using the neighborlist*/
+    for(i=0; i<clusteri_size; i++){
+        ipart = cluster.pic[icluster].stack[i];
+        Enew+=particle_energy(cp_slice,  ipart, 0)  ;
+        nbonds_new+=(cp_slice->pts[ipart].nbonds);
+    }
+
+
+    if (check_internal_energy( psl, cp_slice,  icluster, "tail flip")){
+        error(" WARNING tail flip gone wrong. in bond energy\n");
+        return;
+    }
+
+    Edif = (Enew - Eold);
+
+    /*reject if*/
+    if(exp(-sys.beta*Edif)<RandomNumber() || nbonds_old!=nbonds_new) {
+        memcpy(psl,cp_slice, sizeof(Slice));
+        freeIntArray(&particlesleft_list);
+        free(cp_slice);
+        return ;
+    }
+    // printf(".     **accepted**\n");
+    
+    /* acccepted*/
+    psl->energy+=Edif; 
+    mc_tailflip.rot.acc++;
+
+    // when done, free the memory!
+    freeIntArray(&particlesleft_list);
+    memcpy(psl,cp_slice, sizeof(Slice));
+    free(cp_slice);
+    
+ 
+    return ;
+
+}
+
+void DFS_tailflip(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *cp_slice , tensor R, quaternion dq){
+    //  Depth First Search for tailflip
+    vector dr;
+    int jpart,j_inlist;
+    vector rotvec;
+    quaternion dqrot;
+
+
+
+    // remove ipart from list, else you will find the bond back to ipart. Now you will walk forward to next bond
+    removeElementXIntArray(particlesleft_list,  ipart );
+
+    // loop over the bound particles of ipart, to see if you have visited them
+    for (int n = 0; n < psl->pts[ipart].nbonds; n++){   
+        jpart=psl->pts[ipart].bonds[n]; // the bound particles to ipart;
+  
+        //  did you already visit jpart?
+        j_inlist=checkElementXIntArray(particlesleft_list, jpart );
+        if(j_inlist==1){
+            
+            // perform the tailflip here: 
+            dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
+            matrix_x_vector(R, dr, rotvec);
+            vector_add(rotvec, cp_slice->pts[ipart].r, cp_slice->pts[jpart].r)
+    
+            /* rotate the quaternion*/
+            quat_times(dq,cp_slice->pts[jpart].q,dqrot);
+            cp_slice->pts[jpart].q = dqrot;
+            update_patch_vector_ipart(cp_slice,jpart); 
+
+            DFS_tailflip( psl,jpart,  particlesleft_list,  cp_slice , R, dq );
+        }
+    }
+
+    return;
+}
 /* _______________ MOVEING CLUSTERS __________________________________*/
 
 
@@ -303,7 +483,7 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     }
     
     /* save oldparticles; (!) might want to make this optimized such that you don't copy the whole structure*/
-    memcpy(psl_old , psl, sizeof(Slice));
+    memcpy(cp_slice , psl, sizeof(Slice));
 
     /*perform translation*/
      for(i=0; i<clusteri_size; i++){
@@ -315,10 +495,10 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     if(sys.gravity>0){
         for(i=0; i<cluster.clustersizes[icluster]; i++){
             ipart= cluster.pic[icluster].stack[i];
-            if(psl_old->pts[ipart].r.z>=1.){
+            if(cp_slice->pts[ipart].r.z>=1.){
                 if(particle_in_wall(psl,ipart)==1){
-                    memcpy(psl, psl_old, sizeof(Slice));
-                    // copy_clusterparticles( psl, psl_old,icluster);
+                    memcpy(psl, cp_slice, sizeof(Slice));
+                    // copy_clusterparticles( psl, cp_slice,icluster);
                     return -1;
                 }
             }
@@ -335,7 +515,7 @@ int translatepart_cluster_Ekparts(Slice *psl) {
 
     //first check if you created bonds. then already reject due to detailed balance
     if (nbonds_new>nbonds_old){
-        memcpy(psl, psl_old, sizeof(Slice));
+        memcpy(psl, cp_slice, sizeof(Slice));
         // printf("rejected based on  nbonds\n");
         return -1;
     }
@@ -347,11 +527,11 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     
 
      /* check if internal energy has stayed equal*/
-    int trans_error= check_internal_energy( psl, psl_old,  icluster, "cluster translation");
+    int trans_error= check_internal_energy( psl, cp_slice,  icluster, "cluster translation");
 
     if (trans_error){
         error("cluster translation gone wrong. in bond energy\n");
-        // copy_clusterparticles( psl, psl_old,icluster);
+        // copy_clusterparticles( psl, cp_slice,icluster);
         return -1;
     }
 
@@ -359,7 +539,7 @@ int translatepart_cluster_Ekparts(Slice *psl) {
 
     /*if reject based on energy or nbonds */
     if((exp(-psl->beta*Edif)<RandomNumber() )|| (nbonds_old!=nbonds_new)) {
-        memcpy(psl, psl_old, sizeof(Slice));
+        memcpy(psl, cp_slice, sizeof(Slice));
         return -1;
     }
 
@@ -413,8 +593,8 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
     }
 
     /*save old particles information (bv position, bond energy etc.)*/
-    // copy_clusterparticles(  psl_old,psl,icluster);
-    memcpy(psl_old,psl, sizeof(Slice));
+    // copy_clusterparticles(  cp_slice,psl,icluster);
+    memcpy(cp_slice,psl, sizeof(Slice));
 
     /*pick randomly the reference particle" ref_random -> [0,0.999> pick particle 0 etc*/
     ref_random = (int)(RandomNumber()*clusteri_size);
@@ -450,8 +630,8 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
 
     //first check if you created bonds. then already reject due to detailed balance
     if (nbonds_new>nbonds_old){
-        memcpy(psl, psl_old, sizeof(Slice));
-        // copy_clusterparticles( psl, psl_old,icluster);
+        memcpy(psl, cp_slice, sizeof(Slice));
+        // copy_clusterparticles( psl, cp_slice,icluster);
         // printf("rejected based on  nbonds\n");
         return -1;
     }
@@ -460,7 +640,7 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
     }
 
     /* check if internal energy has stayed equal*/
-    if (check_internal_energy( psl, psl_old,  icluster, " cluster rotation")){
+    if (check_internal_energy( psl, cp_slice,  icluster, " cluster rotation")){
         error(" WARNING cluster rotation gone wrong. in bond energy\n");
         return -1;
     }
@@ -469,7 +649,7 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
 
     /*reject if*/
     if(exp(-psl->beta*Edif)<RandomNumber() ) {
-        memcpy(psl, psl_old, sizeof(Slice));
+        memcpy(psl, cp_slice, sizeof(Slice));
         // printf("rejected based on MC or nbonds\n");
         return -1;
     }
@@ -765,7 +945,7 @@ void setup_MC(void){
         error("nearest_neighbor and MC cannot go together! turn nearest_neighbor off ");
     }
 
-    psl_old=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
+    cp_slice=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
     copyslice=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
     printf("\n **Setting up the MC parameters...\n ");
 
@@ -783,6 +963,10 @@ void setup_MC(void){
         sprintf(mc_mono.name,"single-particle-clusters moves");
         setup_mc_move(&mc_mono);
     }  
+
+    if ((analysis.xy_print==1) && (analysis.bond_breakage==0)){
+        setup_mc_move(&mc_tailflip);
+    }
     printf("   .. done **\n");  
     
     return;
