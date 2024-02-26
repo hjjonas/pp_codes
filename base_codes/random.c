@@ -245,7 +245,7 @@ vector RandomVector(double drmax) {
 
     u=RandomVector1() ;
 
-    scalar_times(u,drmax*RandomNumber(),u);
+    scalar_times(u,drmax,u);
 
     return u;
 }
@@ -295,14 +295,14 @@ double RandomNumberRange(double boundary_min, double boundary_plus){
     // x is the random number between [boundary_min,boundary_plus>
 
 
-    x= (length*RandomNumber()+boundary_min);
+    x= length*RandomNumber()+boundary_min;
 
     return x;
 }
 
 int RandomIntegerRange(int boundary_min, int boundary_plus){
     int x, length=boundary_plus-boundary_min;
-    // x is the random number between [boundary_min,boundary_plus>
+    // x is the random integer between [boundary_min,boundary_plus>
 
     x= ((int)floor(length*RandomNumber())+boundary_min);
 

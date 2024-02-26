@@ -244,13 +244,12 @@ quaternion QuaternionZaxis( double degree) {
     return q;
 }
 
-quaternion FlipQuaternion(vector r , double theta) {
+quaternion RotateQuaternion(vector r , double theta) {
 // rotates the around the vector r for angle theta (rad)
     quaternion q;
     double alpha,sina;
     vector rotaxis, r_unit;
     double l_r;
-    // r.z=0.;
 
     l_r=sqrt(vector_inp(r,r));
     scalar_divide(r,l_r,r_unit); 

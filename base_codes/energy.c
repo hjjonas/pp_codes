@@ -31,11 +31,9 @@ double total_energy(Slice *psl) {
     // Vpair with or without neighbor list, loops differently over the particles
     if (sys.nearest_neighbor){
         // perform energy calculation with nearest neighbor list
-        // printf("with nn \n");
         Epair=total_Epair_neighborlist(psl);
     }
     else{
-        // printf("without nn \n");
         Epair=total_Epair_woneighborlist(psl);
     }
 
@@ -44,9 +42,111 @@ double total_energy(Slice *psl) {
     return Etot;
 }
 
+double particle_energy(Slice *psl, int ipart, int jpart) { 
+    /*  this function calculates the particle energy of particle ipart.
+    this includes gravity is on.
+    It starts counting from particle jpart.
+    Use jpart=0 in MC code, while in total_energy you use jpart=ipart+1;
+
+    For MC you need to count bonds, 
+    for the calculation of a single particle you need to known if nr bonds changed (fot the cluster update)
+    Only info about that specific particle is needed
+
+    If total energy is calculated, all the particles should contain info about bonden (so if p1-p2 bond, than both should know that)
+    */
+
+    Pts *psi ;    
+    double Ebond=0,Erep=0;
+    double Ebond_tot=0, Etot=0, Erep_tot=0, Egrav=0, Ewall=0,Eactiveforce=0;
+    double s;
+    int kpart;
+    // printf("  particle_energy \n");
+    
+    psi = &psl->pts[ipart];
+
+    if (jpart==0){
+        //if you start from MC (jpart==0) then set nbonds of ipart to zero first
+        //if you start from total_energy it is already set to zero in that function
+        psl->pts[ipart].nbonds=0;
+        // if end-to-end restrained
+        //  && only do when coming from MC (if jpart==0), else (if jpart>0) , ie. via total_energy), it's done outside particle_energy().
+    
+    }   
+
+    /* gravity*/
+    if(sys.gravity>0){
+        Egrav=gravitational_energy_ipart(psl, ipart);
+        if (pot.wall_int!=0){                           Ewall=wall_interaction_ipart(psl,ipart);     }
+        if (sys.particletype[psi->ptype].activity==1){  Eactiveforce=E_active_alignment(psl,  ipart); }
+    }
+
+    /*kpart is de teller, bereken de energy van ipart, start counting the sum vanaf jpart*/
+    for( kpart=jpart; kpart<sys.npart; kpart++ ) {
+  
+        // skip jezelf
+        if(ipart==kpart){   continue; }
+
+        particle_pair_energy(psl,ipart,kpart,&Erep, &Ebond, &s);
+        Erep_tot += Erep; 
+        Ebond_tot += Ebond ;
+        if(Ebond<pot.bond_cutoffE){
+            add_bond_information(psl,ipart,kpart,Erep,Ebond,s);
+            
+            /*in case of calculating the total energy, also add the bond to the other particle*/
+            if( (jpart>0 )&& (kpart>ipart)){      
+                add_bond_information(psl,kpart,ipart,Erep,Ebond,s);
+            }        
+        }
+    }
+
+    Etot = Ebond_tot + Erep_tot + Egrav + Ewall + Eactiveforce ;
+    // printf("The energy of particle %d is %.5lf =  %.5lf (Ebond_tot) +  %.5lf (Erep_tot) +  %.5lf (Egrav)  +  %.5lf (Ewall) +  %.5lf (Eactiveforce)+  %.5lf (Ee2e)\n",ipart,Etot,Ebond_tot,Erep_tot ,Egrav ,Ewall, Eactiveforce , Ee2e);
+    return Etot;
+}
+
+void particle_pair_energy(Slice *psl, int ipart, int jpart, double *Erep, double *Ebond, double *s){
+    // calculates the terms of the pair potential between ipart and jpart. it returns Erep, Ebond and s. 
+    // which may be used to save bond information.
+
+    double r;
+    vector rij,u1;
+
+    particles_distance_length_vector(psl,ipart,jpart,s,&r,&rij);
+
+    if((*s>pot.s_overlap) && (*s<pot.s_cutoff ) ) { 
+        // printf("particles are making are close .. ");
+
+        //calculate repulsive energy(=isotropic,i.e. not dep on patch angles)
+        *Erep=potential_repulsive_energy_sdist(*s);
+        
+        if(isnan(*Erep)!=0){
+            gprint(*Erep);
+            error("is nan");
+        }
+
+        /*this calculates: Vc(r)*S */
+        scalar_divide(rij,r,u1);
+        *Ebond=potential_attractive_bond_energy(psl,ipart,jpart,*s,u1);
+        // gprint(*Ebond);
+        
+        return;
+    }
+    else if(*s<=pot.s_overlap){ // when overlapping
+        *Erep=1e6;
+        *Ebond=0.;
+        return ;
+    }
+    else{
+        *Ebond=0.;
+        *Erep=0;
+    }    
+    return;
+}
+
 vector find_directing_patchvector(Slice *psl, int ipart,vector u1){
     /* find the patchevector on particle ipart that makes the smalles  angle with interparticle vector u1
-    it does track here if this angle falls within the patch range/width*/
+    it does track here if this angle falls within the patch range/width
+    u1 points to other particles */
     int isite; 
     double tracker_i=-1,cositheta;
     vector p1_select=nulvec;
@@ -147,71 +247,7 @@ double E_active_alignment(Slice *psl, int ipart){
     return Eactiveforce;
 }
 
-double particle_energy(Slice *psl, int ipart, int jpart) { 
-    /*  this function calculates the particle energy of particle ipart.
-    this includes gravity is on.
-    It starts counting from particle jpart.
-    Use jpart=0 in MC code, while in total_energy you use jpart=ipart+1;
 
-    For MC you need to count bonds, 
-    for the calculation of a single particle you need to known if nr bonds changed (fot the cluster update)
-    Only info about that specific particle is needed
-
-    If total energy is calculated, all the particles should contain info about bonden (so if p1-p2 bond, than both should know that)
-    */
-
-    Pts *psi ;    
-    double Ebond=0,Erep=0;
-    double Ebond_tot=0, Etot=0, Erep_tot=0, Egrav=0, Ewall=0,Eactiveforce=0,Ee2e=0;
-    double s;
-    int kpart;
-    // printf("  particle_energy \n");
-    
-    psi = &psl->pts[ipart];
-
-    if (jpart==0){
-        //if you start from MC (jpart==0) then set nbonds of ipart to zero first
-        //if you start from total_energy it is already set to zero in that function
-        psl->pts[ipart].nbonds =0;
-
-        // if end-to-end restrained
-        //  && only do when coming from MC (if jpart==0), else (if jpart>0) , ie. via total_energy), it's done outside particle_energy().
-    
-    }   
-
-    /* gravity*/
-    if(sys.gravity>0){
-        Egrav=gravitational_energy_ipart(psl, ipart);
-        if (pot.wall_int!=0){  Ewall=wall_interaction_ipart(psl,ipart);     }
-        if (sys.particletype[psi->ptype].activity==1){  Eactiveforce=E_active_alignment(psl,  ipart); }
-    }
-
-    /*kpart is de teller, bereken de energy van ipart, start counting the sum vanaf jpart*/
-    for( kpart=jpart; kpart<sys.npart; kpart++ ) {
-  
-        // skip jezelf
-        if(ipart==kpart){   continue; }
-
-
-        particle_pair_energy(psl,ipart,kpart,&Erep, &Ebond, &s);
-
-
-        Erep_tot += Erep; 
-        Ebond_tot += Ebond ;
-        if(Ebond<pot.bond_cutoffE){
-            add_bond_information(psl,ipart,kpart,Erep,Ebond,s);
-            
-            /*in case of calculating the total energy, also add the bond to the other particle*/
-            if( (jpart>0 )&& (kpart>ipart)){      
-                add_bond_information(psl,kpart,ipart,Erep,Ebond,s);
-            }        
-        }
-    }
-
-    Etot = Ebond_tot + Erep_tot + Egrav + Ewall + Eactiveforce + Ee2e;
-    // printf("The energy of particle %d is %.5lf =  %.5lf (Ebond_tot) +  %.5lf (Erep_tot) +  %.5lf (Egrav)  +  %.5lf (Ewall) +  %.5lf (Eactiveforce)+  %.5lf (Ee2e)\n",ipart,Etot,Ebond_tot,Erep_tot ,Egrav ,Ewall, Eactiveforce , Ee2e);
-    return Etot;
-}
 
 void orientation_parameters(Slice *psl, int ipart, int jpart, vector u1, double *costheta_i, double *costheta_j, double *costheta_ij){
     /* this function calculates the bulk0bulk distance s, the bulk-patch distance s_bp, the patch-pathc distance s_pp,
@@ -227,8 +263,8 @@ void orientation_parameters(Slice *psl, int ipart, int jpart, vector u1, double 
 
     //find smallest combination of the patch vector angles
     scalar_times(u1,-1,min_u1); //make here -u1, because you need to flip the u1 vector, to find p1 (and patch angle) correctly.
-    p1= find_directing_patchvector(psl, ipart,  min_u1);
-    p2= find_directing_patchvector(psl, jpart,  u1);
+    p1= find_directing_patchvector(psl, ipart,  u1);
+    p2= find_directing_patchvector(psl, jpart,  min_u1);
     
     calc_angles( u1,p1, p2,costheta_i,costheta_j,costheta_ij, calc_ij); // this function gives back theta_i, theta_j and theta_ij (if calc_ij==1)
 
@@ -240,8 +276,8 @@ void calc_angles( vector u1,vector p1,vector p2, double *ptrcostheta_i, double *
     double costheta_i,costheta_j,costheta_ij,rad_to_degree=180./PI;
     
     
-    costheta_i=-vector_inp(u1,p1); 
-    costheta_j=vector_inp(u1,p2); 
+    costheta_i=vector_inp(u1,p1); 
+    costheta_j=-vector_inp(u1,p2); 
     // gprint(costheta_i);
     // gprint(costheta_j);
     // vprint(u1);
@@ -263,11 +299,11 @@ void calc_angles( vector u1,vector p1,vector p2, double *ptrcostheta_i, double *
         vector e1,e2,e3,proj_u1_p1,proj_u1_p2,u2,u3; 
 
         // projection p1 onto u1, and create (unit vector) e2 the perpendicular projection of p1 
-        scalar_times(u1,-costheta_i,proj_u1_p1); 
+        scalar_times(u1,costheta_i,proj_u1_p1); 
         vector_minus(p1,proj_u1_p1,u2);
         scalar_divide(u2,sqrt(vector_inp(u2,u2)),e1);
         // projection p2 onto u1, and create (unit vector) e3 the perpendicular projection of p2 
-        scalar_times(u1,costheta_j,proj_u1_p2); 
+        scalar_times(u1,-costheta_j,proj_u1_p2); 
         vector_minus(p2,proj_u1_p2,u3);
         scalar_divide(u3,sqrt(vector_inp(u3,u3)),e2);
 
@@ -415,43 +451,7 @@ double gravitational_energy_ipart(Slice *psl, int ipart){
 
 }
 
-void particle_pair_energy(Slice *psl, int ipart, int jpart, double *Erep, double *Ebond, double *s){
-    // calculates the terms of the pair potential between ipart and jpart. it returns Erep, Ebond and s. 
-    // which may be used to save bond information.
 
-    double r;
-    vector rij,u1;
-
-    particles_distance_length_vector(psl,ipart,jpart,s,&r,&rij);
-
-    if((*s<pot.s_cutoff )&& (*s>pot.s_overlap)) { 
-        // printf("particles are making are close .. ");
-
-        //calculate repulsive energy(=isotropic,i.e. not dep on patch angles)
-        *Erep=potential_repulsive_energy_sdist(*s);
-        // gprint(*Erep);
-        if(isnan(*Erep)!=0){
-            gprint(*Erep);
-            error("is nan");
-        }
-        /*this calculates: Vc(r)*S */
-        scalar_divide(rij,r,u1);
-        *Ebond=potential_attractive_bond_energy(psl,ipart,jpart,*s,u1);
-        // gprint(*Ebond);
-        
-        return;
-    }
-    else if(*s<=pot.s_overlap){
-        *Erep=1e6;
-        *Ebond=0.;
-        return ;
-    }
-    else{
-        *Ebond=0.;
-        *Erep=0;
-    }    
-    return;
-}
 
 double total_Epair_neighborlist(Slice *psl){
      
@@ -519,8 +519,8 @@ double total_Epair_woneighborlist(Slice *psl){
 
     //calculate patchy critical Casimir interaction between all particles
     for(  ipart=0; ipart<psl->nparts; ipart++ )  {
-        /*kpart is de teller, bereken de energy van ipart, start counting the sum vanaf jpart*/
-        for( int kpart=ipart+1; kpart<sys.npart; kpart++ ) {
+        /*kpart is de teller, bereken de energy van ipart, start counting the sum from ipart+1*/
+        for( int kpart=ipart+1; kpart<psl->nparts; kpart++ ) {
       
             particle_pair_energy(psl,ipart,kpart,&Erep, &Ebond, &s);
             
@@ -534,8 +534,6 @@ double total_Epair_woneighborlist(Slice *psl){
                 tot_bonds++;   
             }
         }
-
-        // tot_bonds+=psl->pts[ipart].nbonds;
     }
     // printf("particle energies done\n");
     psl->nbonds=tot_bonds; // bonds are counted twice, so divide by 2

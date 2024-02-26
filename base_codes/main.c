@@ -1,8 +1,8 @@
 #include "path.h"
 
-Slice        *slice, *psl_old, *start_slice, *copyslice;
+Slice        *slice, *cp_slice, *start_slice, *copyslice;
 System       sys;
-vector        nulvec;
+vector       nulvec;
 
 
 
@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     // double energy;          // Energy variable
     // FILE *emptyfile, *rdffile;  // File pointers
     time_t t0 = time(0);    // Time at start of program
-    
+    time_t block2_0=t0 ;
     // Call function to set up simulation parameters
     setup_simulation();
     
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
                     break;
             }
             // perform version specific analysis here;
-            innerloop_analysis(pls);
+            // innerloop_analysis(pls);
 
         }
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
         // Print time for this block
         time_t block2_1 = time(0);
-        time_t block2_0 ;
+        
         double datetime_diff2 = difftime(block2_1, block2_0);
         printf("This block took %lf [sec]\n", datetime_diff2);
         block2_0 =block2_1;
@@ -170,26 +170,6 @@ void read_coordinates_from_file(Slice *current, int block_number){
     return;
 }
 
-
-// // this is a very specific function .. 
-void free_all_memory(void){
-
-    printf("free_all_memory\n");
-
-    // do something with this 
-
-    // free(&slice[0]);
-    // free(&start_slice[0]);
-    // freeBondTimeInfoArray(bondtimeinfoarray);
-
-    // if (sys.sim_type==MC_ALGORITHM){
-    //     free(&psl_old[0]);
-    // }
-
-}
-
-
-
 void mc_warmup(Slice *psl){
  // Use mc_warmup to decorrelate from the input structure; perform MC moves without bond breakages
     printf("*********  mc_warmup is on:  equilibrating with MC ********\n");
@@ -199,12 +179,15 @@ void mc_warmup(Slice *psl){
     double old_beta=psl->beta;
     int old_clustermc=sys.cluster_MC;
     int nn=sys.nearest_neighbor;
+    int xyprint= analysis.xy_print;
 
     // Set new settings for MC warmup
     sys.nearest_neighbor=0; // For MC, set to neaghborlist to zero
     analysis.bond_breakage=0;
     psl->beta=1.; // Put temperature lower if you want to make stiffer bonds
     sys.cluster_MC=0;
+    analysis.xy_print=0;
+
     printf("There are %d bonds in the system, keep them fixed as analysis.bond_breakage= %d.\n",psl->nbonds,analysis.bond_breakage);
 
     // Perform MC warmup cycles
@@ -216,7 +199,7 @@ void mc_warmup(Slice *psl){
         // Print status and optimize MC
         printstatusmc();
         optimizemc();
-        printenergy_warmup(psl);
+        printenergy(psl, "_warmup");
 
         // Check for bond breakage
         if (psl->nbonds!=start_slice->nbonds){
@@ -232,7 +215,7 @@ void mc_warmup(Slice *psl){
     psl->beta=old_beta; 
     sys.cluster_MC=old_clustermc;
     sys.nearest_neighbor=nn;
-
+    analysis.xy_print=xyprint;
     // Update nearest neighbor list if necessary
     if (sys.nearest_neighbor)  update_nnlist(psl);
 
@@ -241,12 +224,22 @@ void mc_warmup(Slice *psl){
 }
 
 
+void emptyfiles(void){
+    // deletes files that contain the string ".dat" or, if there is no restart also those files with ".out"
 
-void emptyfiles(){
+    rmfiles_filename(".", ".dat", 1);
+    if (init_conf.restart==0) rmfiles_filename(".", ".out", 1);
+
+    return ;
+}
+
+void rmfiles_filename(char directory[MAX_FILENAME_LENGTH], char str_file[MAX_FILENAME_LENGTH], int print){
     struct dirent *de;
     int status;
 
-    DIR *dr = opendir(".");
+    if (strlen(directory)==0){  error("rmfile_filename, specify the directory. Current directory is \".\" ");}
+    DIR *dr = opendir(directory);
+
     if (dr == NULL){  // opendir returns NULL if couldn't open directory 
         printf("Could not open current directory. No files are deleted. continue" ); 
         return ; 
@@ -256,27 +249,12 @@ void emptyfiles(){
     // for readdir() 
     while ((de = readdir(dr)) != NULL){
         // printf("%s\n", de->d_name); /* prints all the ".dat" files in the current directory*/
-        if (strstr(de->d_name, ".dat") != NULL){
+        if (strstr(de->d_name, str_file) != NULL){
             status = remove(de->d_name);
 
-            if (status == 0){
-                printf("deleted successfully:     %s\n", de->d_name);
-            }
-            else{
-                printf("Unable to delete the file\n");
-            }
-        }
-        // if you want to don't restart from a time and configuration, also remove ".out" files
-        if (init_conf.restart==0){
-            if (strstr(de->d_name, ".out") != NULL){
-                status = remove(de->d_name);
-    
-                if (status == 0){
-                    printf("deleted successfully:     %s\n", de->d_name);
-                }
-                else{
-                    printf("Unable to delete the file\n");
-                }
+            if (print==1){
+                if (status == 0){   printf("deleted successfully:     %s\n", de->d_name);}
+                else{               printf("Unable to delete:         %s\n", de->d_name); }
             }
         }
     }
@@ -291,7 +269,7 @@ void error(char *msg){
     It then exits the program with an error code of 0. */
   printf("error: %s\n",msg);
 
- 
+    //free memory 
   exit(0);
 }
 
