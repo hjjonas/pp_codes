@@ -5,9 +5,9 @@
 void copy_clusterparticles( Slice * ,Slice *,int );
 int check_internal_energy(Slice *,Slice *, int , char [100]);
 int rotate_monocluster(Slice *, int );
-void copy_clusterparticles( Slice * ,Slice *,int );
 int energy_divergence_check(Slice *, char [50]);
-int single_particle_move(Slice *, int );
+int energy_divergence_check_ipart(Slice *, Pts, int, char [50]);
+void single_particle_move(Slice *, int );
 int rotatepart_cluster_Ekparts(Slice *);
 int translatepart_cluster_Ekparts(Slice *);
 void propagate_mc( Slice * );
@@ -54,11 +54,11 @@ void mccycle(Slice *psl) {
 
                 /* expensive function, do this function only when the number of bonds has changed. */
                 if (cluster.update==1){
-                    printf("****performing cluster analysis and linking*****\n");
+                    // printf("****performing cluster analysis and linking*****\n");
                     linking_all_cluster(psl);
                     cluster.update=0;
 
-                    printf("  there are %d clusters \n",psl->nclusters );
+                    // printf("  there are %d clusters \n",psl->nclusters );
                 }
                 
                 /* *** the cluster move*** */
@@ -67,7 +67,7 @@ void mccycle(Slice *psl) {
                 // printf("a cluster move is performed, the energy is         %lf\n", psl->energy);
                 Edivcheck=energy_divergence_check(psl,"cluster move");
                 if (Edivcheck>-1){
-                    printf("something went wrong in cluster moves, to back to snapshot before cluster moves\n");
+                    error("something went wrong in cluster moves, to back to snapshot before cluster moves\n");
 
                     memcpy(psl,copyslice,sizeof(Slice));
                     psl->energy=total_energy(psl);
@@ -110,16 +110,15 @@ void mccycle(Slice *psl) {
     }
     else{
         for(istep=0;istep<10;istep++){
-            total_energy(psl);
-            // printf(" single moves, starting iwth %d bonds \n ",psl->nbonds);
-            linking_all_cluster(psl);
-            propagate_mc(psl);   
-            // printf("a single particle move is performed, the energy is %lf\n", psl->energy);
 
-            if (energy_divergence_check(psl,"single particle moves")==1) error("stop at single particle moves");
+            propagate_mc(psl);   
+
+            if (energy_divergence_check(psl,"single particle moves")==1)   error("stop at single particle moves");
+
             /*checks if any particle exeeds the maximum number of bonds (more than one per site)*/
             check_maxbonds(psl);       
-        }   
+        } 
+         
     }
 
     /*checks if any particle exeeds the maximum number of bonds (more than one per site)*/
@@ -140,156 +139,15 @@ void propagate_mc(Slice *psl) {
     //printf("propagating via mc\n");
     for(i=0; i<psl->nparts; i++) {
         movetype =  RandomIntegerRange(0, 2);
-        ipart = single_particle_move(psl, movetype);
+        single_particle_move(psl, movetype);
     }
     return;
 }
 
-
-/* _______________ MOVEING SINGLE PARTICLES __________________________*/
-int single_particle_move(Slice *psl, int r_or_t){
-    /*one function for either rotate (0) or translate(1)*/
-    int ipart, nbonds_old_tot,n,particle;
-    Pts oldpart;
-    double dr2, Eold, Enew, Edif;
-    double tracked_diff, Eold_tot, Enew_tot;
-    vector dr, dr_dummy;
-    quaternion dq,dqrot;
-
-    /*choose a random particle*/
-    ipart=(int)(RandomNumber()*psl->nparts);
-    
-    // old single particle info
-    Eold=particle_energy(psl,ipart,0); 
-    oldpart=psl->pts[ipart];
-
-    if((psl->energy/psl->energy!=1) && (fabs(psl->energy)>1e-10)){
-        error("energy nan in before  single particle move ");
-    }
-
-
-    if (r_or_t==0){
-        // printf("translation  ");
-        mc_single.trans.tries++;
-        /*make a random dr vector*/
-        dr=RandomVector(mc_single.drmax);
-        if (sys.gravity>0){
-            dr.z/=(sys.gravity*10.);
-        }
-        /*displace the particle*/
-        vector_add(psl->pts[ipart].r, dr, psl->pts[ipart].r);
-
-        /*check if the particle is put into the wall, than always reject. No need to calculate the energy.*/
-        if(sys.gravity>0){
-            if(oldpart.r.z>1.){
-            // if(oldpart[ipart].r.z>1.){
-                if(particle_in_wall(psl,ipart)==1){
-                    psl->pts[ipart]= oldpart;
-                    return -1;
-                }
-            }
-        }
-        // pbc(psl->pts[ipart].r,sys.boxl); /* perform pbc if no neighborlist is used*/   
-    }
-    else{
-        // printf("rotation  ");
-        mc_single.rot.tries++;
-
-        /*rotate the quaternion*/
-        dq=RandomQuaternionRange(mc_single.dqmax);
-        // dq=QuaternionZaxis( 1.);
-        rotate_quaternion_ipart(  psl,  ipart,  dq );
-    }
-
-    /*calculate the new particle energy*/
-    // printf("Enew %d :\n",ipart);
-    // Enew_tot=total_energy(psl);
-    Enew=particle_energy(psl,ipart,0);
-    Edif = Enew - Eold;
-
-
-    if (analysis.bond_breakage!=1){
-        // reject too if bond breakage is not allowed
-        if ( oldpart.nbonds != psl->pts[ipart].nbonds){
-            /* if the translation caused a bond to break/form,if so do a clusterupdate before performing clustermoves*/
-            psl->pts[ipart]=oldpart;
-            return -1;
-        }
-        else{
-            for(n=0;n<oldpart.nbonds; n++){
-                if(oldpart.bonds[n]!=psl->pts[ipart].bonds[n]){
-                    psl->pts[ipart]=oldpart;
-                    return -1;
-                }
-            }
-        }
-    }
-    // printf("%d  %.5lf  %.5lf  %.5lf \n",ipart, Eold , Edif,Enew);
-    /*metropolis rule*/
-    if(exp(-psl->beta*Edif)<RandomNumber()) {
-        // tracked_diff=Eold_tot-psl->energy;
-        // if (fabs(tracked_diff)>0.0001){
-        //     gprint(Edif);
-        //     printf("WARNING difference of %.10lf from Etot_old =  %.5lf and psl->energy= %.5lf\n",tracked_diff,Eold_tot,psl->energy);
-        // }
-
-
-        psl->pts[ipart]= oldpart;
-        return -1;
-    }
-
-
-    /*accepted*/
-    psl->energy+=Edif;
-
-    if((psl->energy/psl->energy!=1) && (fabs(psl->energy)>1e-10)){
-        printf("Edif %lf\n", Edif);
-        printf("Enew %lf -Eold %lf\n",Enew,Eold );
-        error("energy nan single particle move");
-    }
-    
-    // // tracked_diff=Enew_tot-psl->energy;
-
-    // if (fabs(tracked_diff)>0.0001){
-    //     printf("WARNING difference of %.10lf from Etot =  %.10lf and psl->energy= %.10lf\n",tracked_diff,Enew_tot,psl->energy);
-    // }
-    // printf("accepted %d. Edif =  %.5lf  - %.5lf   = %.5lf      Etot=%.12lf\n\n",ipart, Enew, Eold,Edif,  psl->energy);
-
-    /*add acceptance*/
-    if (r_or_t==0){
-        mc_single.trans.acc++;
-        particle=-1;
-    }
-    else{
-        mc_single.rot.acc++;
-        particle = ipart; //return the particle number for updating dr (nearestneighbor)
-    }
-
-    /* if the translation/rotation caused a bond to break/form,if so do a clusterupdate before performing clustermoves*/
-    if (sys.cluster_MC ){
-        if ( oldpart.nbonds != psl->pts[ipart].nbonds){ 
-            cluster.update=1;
-        }
-        else{
-            for(n=0;n<oldpart.nbonds; n++){
-                if(oldpart.bonds[n]!=psl->pts[ipart].bonds[n]){
-                    cluster.update=1;
-                }
-            }
-        }
-    }
-    // energy_divergence_check(psl,"single particle moves");
-    // printf("\n");
-
-    return particle;
-}
-
-/* _______________ MOVEING CLUSTERS __________________________________*/
 void cluster_propagate_mc(Slice *psl){
     /* do a cluster move instead of single particle move*/
-
-    int n,update=0, i, icluster, ipart;
-    double nwhich,dr2;
+    int n, icluster;
+    double nwhich;
 
     //printf("propagating via mc\n");
     for(n=0; n<psl->nparts; n++) {
@@ -304,6 +162,110 @@ void cluster_propagate_mc(Slice *psl){
 
     return;
 }
+
+
+/* _______________ MOVEING SINGLE PARTICLES __________________________*/
+void single_particle_move(Slice *psl, int r_or_t){
+    /*one function for either rotate (1) or translate(0), selected via r_or_t*/
+    int ipart, nbonds_old_tot,n,particle;
+    Pts oldpart;
+    double dr2, Eold, Enew, Edif;
+    double tracked_diff, Eold_tot, Enew_tot;
+    vector dr=nulvec;
+    quaternion dq,dqrot;
+
+    /*choose a random particle*/
+    ipart=RandomIntegerRange(0, psl->nparts); 
+    
+    // old single particle info; and save the old particle info
+    Eold=particle_energy(psl,ipart,0); 
+    memcpy(&oldpart, &psl->pts[ipart], sizeof(Pts));
+
+    if(r_or_t==0){
+        // printf("translation \n ");
+        mc_single.trans.tries++;
+        /*make a random dr vector*/
+        dr=RandomVector(mc_single.drmax);
+        if (sys.gravity>0){
+            dr.z/=(sys.gravity*10.);
+        }
+        /*displace the particle*/
+        vector_add(psl->pts[ipart].r, dr, psl->pts[ipart].r);
+
+        /*check if the particle is put into the wall, than always reject. No need to calculate the energy.*/
+        if((sys.gravity>0) && (oldpart.r.z>1.) ){
+            if(particle_in_wall(psl,ipart)==1){
+                memcpy( &psl->pts[ipart],&oldpart, sizeof(Pts));
+
+                return;
+            }
+        }
+        // pbc(psl->pts[ipart].r,sys.boxl);    
+    }
+    else{
+        // printf("rotation  ");
+        mc_single.rot.tries++;
+
+        /*rotate the quaternion*/
+        dq=RandomQuaternionRange(mc_single.dqmax);
+        rotate_quaternion_ipart(  psl,  ipart,  dq );
+    }
+
+    /*calculate the new particle energy*/
+    Enew=particle_energy(psl,ipart,0);
+    Edif = Enew - Eold;
+
+
+    if (analysis.bond_breakage!=1){
+        // reject too if bond breakage is not allowed
+        if ( oldpart.nbonds != psl->pts[ipart].nbonds){
+            /* if the translation caused a bond to break/form,if so do a clusterupdate before performing clustermoves*/
+            memcpy( &psl->pts[ipart],&oldpart, sizeof(Pts));
+            return;
+        }
+        else{
+            for(n=0;n<oldpart.nbonds; n++){
+                if(oldpart.bonds[n]!=psl->pts[ipart].bonds[n]){
+                    memcpy( &psl->pts[ipart],&oldpart, sizeof(Pts));
+                    return;
+                }
+            }
+        }
+    }
+
+    // printf("%d  %.5lf  %.5lf  %.5lf \n",ipart, Eold , Edif,Enew);
+    /*MC metropolis rule*/
+    if(exp(-psl->beta*Edif)<RandomNumber()) {
+        memcpy( &psl->pts[ipart],&oldpart, sizeof(Pts));
+        return;
+    }
+
+    /*accepted*/
+    psl->energy+=Edif;
+
+    /*add acceptance count*/
+    if (r_or_t==0){     mc_single.trans.acc++;}
+    else{               mc_single.rot.acc++;}
+
+    /* if the translation/rotation caused a bond to break/form, if so do a clusterupdate before performing clustermoves*/
+    if (sys.cluster_MC ){
+        if ( oldpart.nbonds != psl->pts[ipart].nbonds){ 
+            cluster.update=1;
+        }
+        else{
+            for(n=0;n<oldpart.nbonds; n++){
+                if(oldpart.bonds[n]!=psl->pts[ipart].bonds[n]){
+                    cluster.update=1;
+                }
+            }
+        }
+    }
+    
+    return;
+}
+
+/* _______________ MOVEING CLUSTERS __________________________________*/
+
 
 int translatepart_cluster_Ekparts(Slice *psl) {
 
@@ -320,8 +282,6 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     if (icluster==nclusters) error("icluster==nclusters in translate cluster ");
     int clusteri_size=cluster.clustersizes[icluster];
 
-
-
     /* differentiate between single and multi particle clusters */
     if(clusteri_size==1){
         dr=RandomVector(mc_mono.drmax);
@@ -332,10 +292,8 @@ int translatepart_cluster_Ekparts(Slice *psl) {
         mc_cluster.trans.tries++; 
     }
     if (sys.gravity>0){
-        dr.z/=(sys.gravity*50.);
         dr.z=0;
     }
-   
 
     /*save old energy, nbonds, positions*/
     for(i=0; i<clusteri_size; i++){
@@ -343,11 +301,9 @@ int translatepart_cluster_Ekparts(Slice *psl) {
         Eold+=particle_energy(psl, ipart,0) ;
         nbonds_old+=(psl->pts[ipart].nbonds);
     }
-   
     
     /* save oldparticles; (!) might want to make this optimized such that you don't copy the whole structure*/
     memcpy(psl_old , psl, sizeof(Slice));
-    // copy_clusterparticles(psl_old , psl, icluster);
 
     /*perform translation*/
      for(i=0; i<clusteri_size; i++){
@@ -380,7 +336,6 @@ int translatepart_cluster_Ekparts(Slice *psl) {
     //first check if you created bonds. then already reject due to detailed balance
     if (nbonds_new>nbonds_old){
         memcpy(psl, psl_old, sizeof(Slice));
-        // copy_clusterparticles( psl, psl_old,icluster);
         // printf("rejected based on  nbonds\n");
         return -1;
     }
@@ -399,26 +354,19 @@ int translatepart_cluster_Ekparts(Slice *psl) {
         // copy_clusterparticles( psl, psl_old,icluster);
         return -1;
     }
-        
 
     Edif = (Enew - Eold);
 
     /*if reject based on energy or nbonds */
     if((exp(-psl->beta*Edif)<RandomNumber() )|| (nbonds_old!=nbonds_new)) {
         memcpy(psl, psl_old, sizeof(Slice));
-        // copy_clusterparticles( psl, psl_old,icluster);
         return -1;
     }
 
     psl->energy+=Edif;
 
-
-    if(clusteri_size==1){
-        mc_mono.trans.acc++;
-    }
-    else{
-        mc_cluster.trans.acc++; 
-    }
+    if(clusteri_size==1){   mc_mono.trans.acc++; }
+    else{                   mc_cluster.trans.acc++;  }
 
     return icluster;
 }
@@ -434,7 +382,6 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
     quaternion dq, dqrot;
     tensor R;
     vector dr, rotvec;
-
 
     /*select a cluster randomly*/
     icluster=(int)(RandomNumber()*nclusters);
@@ -523,9 +470,6 @@ int rotatepart_cluster_Ekparts(Slice *psl) {
     /*reject if*/
     if(exp(-psl->beta*Edif)<RandomNumber() ) {
         memcpy(psl, psl_old, sizeof(Slice));
-
-        // copy_clusterparticles( psl, psl_old,icluster);
-
         // printf("rejected based on MC or nbonds\n");
         return -1;
     }
@@ -605,25 +549,21 @@ void copy_clusterparticles( Slice *psl_new ,Slice *psl_source,int icluster){
 
 
 /* _______________ CHECK, OPTIMIZE AND PRINT MC PARAMETERS _____________*/
-
-int energy_divergence_check(Slice *psl, char loc[50]){
+int energy_divergence_check(Slice *psl,  char loc[50]){
     // checks for the divergence of the energy due to the use of a running energy in the MC code
     double diff = fabs(total_energy(psl)-psl->energy);
     // printf("chek energy_divergence_check\n");
     if(diff>.001){
-        printf("WARINING: there is a difference of %.6lf in the recalc.  after %s\n", diff,loc);
+        printf("\nWARINING: there is a difference of %.6lf in the recalc.  after %s\n", diff,loc);
         printf("recalc total_energy              %lf\n", total_energy(psl));
         printf("tracked slice[0].energy               %lf\n", psl->energy);
-        psl->energy=total_energy(psl);
+        print_slice_information(psl);
         if(diff>1){
-            printf("there is still a difference of %.6lf  in the recalc.  after %s\n", diff, loc);
-            printf("recalc total_energy              %lf\n", total_energy(psl));
-            printf("tracked slice[0].energy               %lf\n", psl->energy);
-            return 1;
-
+            printf("the energy difference is too big\n ");
+            // print_slice_information(psl);
+            error("stop");
         }
-        return 0;
-
+        return 1;
     }
     return -1;
 }
@@ -827,13 +767,13 @@ void setup_MC(void){
 
     psl_old=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
     copyslice=(Slice *)calloc(1,sizeof(Slice)); //global variable,used in cluster MC
-    printf("\nSetting up the MC parameters...\n ");
+    printf("\n **Setting up the MC parameters...\n ");
 
     
     sprintf(mc_single.name,"single particle");
     setup_mc_move(&mc_single);
-    mc_single.drmax/=100.;
-    mc_single.dqmax/=10.;
+    // mc_single.drmax/=10.;
+    // mc_single.dqmax/=10.;
 
     
     if(sys.cluster_MC==1){
@@ -843,7 +783,7 @@ void setup_MC(void){
         sprintf(mc_mono.name,"single-particle-clusters moves");
         setup_mc_move(&mc_mono);
     }  
-    printf("   .. done\n");  
+    printf("   .. done **\n");  
     
     return;
 }
