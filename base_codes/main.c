@@ -179,12 +179,15 @@ void mc_warmup(Slice *psl){
     double old_beta=psl->beta;
     int old_clustermc=sys.cluster_MC;
     int nn=sys.nearest_neighbor;
+    int xyprint= analysis.xy_print;
 
     // Set new settings for MC warmup
     sys.nearest_neighbor=0; // For MC, set to neaghborlist to zero
     analysis.bond_breakage=0;
     psl->beta=1.; // Put temperature lower if you want to make stiffer bonds
     sys.cluster_MC=0;
+    analysis.xy_print=0;
+
     printf("There are %d bonds in the system, keep them fixed as analysis.bond_breakage= %d.\n",psl->nbonds,analysis.bond_breakage);
 
     // Perform MC warmup cycles
@@ -212,7 +215,7 @@ void mc_warmup(Slice *psl){
     psl->beta=old_beta; 
     sys.cluster_MC=old_clustermc;
     sys.nearest_neighbor=nn;
-
+    analysis.xy_print=xyprint;
     // Update nearest neighbor list if necessary
     if (sys.nearest_neighbor)  update_nnlist(psl);
 
