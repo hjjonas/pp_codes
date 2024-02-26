@@ -30,6 +30,10 @@ typedef struct vector_type {
     double        x,y,z;
 } vector;
 
+typedef struct tensor_type {
+    vector        x,y,z;
+} tensor;
+
 typedef struct quaternion_type {
   // see section 2.4.3 RigidBodyRotations&Quaternions of thesis HJJ
     double        q0,q1,q2,q3;
@@ -152,7 +156,7 @@ typedef struct slice_type {
 /*---------------------------------------------------------------------------*/
 /*------------------GLOBALLY DEFINED VARIABLES-------------------------------*/
 
-extern Slice        *slice, *psl_old, *start_slice, *copyslice;
+extern Slice        *slice, *cp_slice, *start_slice, *copyslice;
 extern System       sys;
 extern vector       nulvec;
 

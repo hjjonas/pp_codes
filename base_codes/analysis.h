@@ -103,6 +103,7 @@ extern void reset_running_statistics(Statistics *);
 extern void running_statistics(Statistics *, double );
 extern int particle_in_wall(Slice *psl, int ipart);
 extern void particles_distance_length_vector(Slice *, int , int  ,double *, double *,vector *);
+
 /*---------------------------------------------------------------------------*/
 
 /*------------------GLOBAL STRUCTURES----------------------------------------*/

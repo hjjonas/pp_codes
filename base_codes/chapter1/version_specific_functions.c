@@ -13,7 +13,7 @@ void version_specific_analysis(Slice *psl){
 
 
 	
-	if(analysis.cluster_analysis==1){
+	if(cluster.analysis==1){
         // the histogram is the same as size_distribution, but not normalized
         // print_StatsLength_to_file(&cluster.size_histogram); 
          print_StatsLength_to_file(&cluster.size_distribution);}
@@ -80,7 +80,6 @@ void free_all_memory(void){
 
 	return;
 }
-
 
 void print_xy_positions(Slice *psl){
     // x   y   fx  fy  particle    time
@@ -192,3 +191,39 @@ void print_xy_positions(Slice *psl){
 
 }
 
+void DFS_tailflip(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *cp_slice , tensor R, quaternion dq){
+    //  Depth First Search for tailflip
+    vector dr;
+    int jpart,j_inlist;
+    vector rotvec;
+    quaternion dqrot;
+
+
+
+    // remove ipart from list, else you will find the bond back to ipart. Now you will walk forward to next bond
+    removeElementXIntArray(particlesleft_list,  ipart );
+
+    // loop over the bound particles of ipart, to see if you have visited them
+    for (int n = 0; n < psl->pts[ipart].nbonds; n++){   
+        jpart=psl->pts[ipart].bonds[n]; // the bound particles to ipart;
+  
+        //  did you already visit jpart?
+        j_inlist=checkElementXIntArray(particlesleft_list, jpart );
+        if(j_inlist==1){
+            
+            // perform the tailflip here: 
+            dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
+            matrix_x_vector(R, dr, rotvec);
+            vector_add(rotvec, cp_slice->pts[ipart].r, cp_slice->pts[jpart].r)
+    
+            /* rotate the quaternion*/
+            quat_times(dq,cp_slice->pts[jpart].q,dqrot);
+            cp_slice->pts[jpart].q = dqrot;
+            update_patch_vector_ipart(cp_slice,jpart); 
+
+            DFS_tailflip( psl,jpart,  particlesleft_list,  cp_slice , R, dq );
+        }
+    }
+
+    return;
+}
