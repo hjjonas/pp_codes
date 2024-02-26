@@ -5,9 +5,6 @@
 void printstatusbmd(Slice *psl);
 void count_empty_clusters_monomers(Slice *, int *, int *);
 void print_pos_sites(Slice *);
-void print_energy_s_theta1_theta2(Slice *);
-void print_statistics_N1(Statistics , char [100]);
-void print_statistics_file(StatsLength *,Slice *);
 // void printrdf();
 // PUT IN VERSION SPECIFIC c file: void print_association_dissociation_times(void);
 
@@ -16,79 +13,72 @@ void print_statistics_file(StatsLength *,Slice *);
 
 
 void terminate_block(Slice *psl) {
-
-    int monomer=0,emptycluster=0;
-    int nbonds_old,nbonds_new;
+    // terminate_block() resides in the outerloop at main.c
+    //  a few things are always calculated and printed (to file), irrespective of the specific measurements of the systems you want: 
+    /*      1)  the energy (printed to file). In this functions also the information of all bonds is saved
+            2)  the current configuration (printed to file)
+            3)  the cluster distributions/histogram, see in energy.c how a bond is defined 
+            4)  the number of bonds, monomers, and cycli (printed to screen)
+        then, depending on the algorithm. Details about it are printed to the screen, e.g. time  in BMD or acceptance ratio's in MC
+        Finally, version specific measurements and calculations are performed. Those are listed in version_specific_analysis(psl) in version_specific_functions.c
         
-    static int init=1, teller=0;
-    // printf("terminate_block\n"); 
-
-
-    nbonds_old=psl->nbonds;
+        init: init=1 when you first use terminate_block at the beginning of the program. 
+        when init=1, you also save the starting configuration in start_slice (a global variable).
+        In some versions of the code, you want to know information about the first snapshot. So this information will always be available in this slice.
+    */
+        
+    static int init=1;
+    
+    // printf("terminate_block\n")
     psl->energy=total_energy(psl);
-    printf("the total energy is %lf\n", psl->energy);
-    nbonds_new=psl->nbonds;
+    printf("         the total energy is %lf\n", psl->energy);
+   
+    // print to file
     
-    printenergy(psl);
+    printenergy(psl, ""); 
     conf_output(psl);   
-    
-    // If printing trajectory is specified in parameters
-    if ((init==0) && (analysis.print_trajectory))  printing_trajectory(psl); 
-
 
     // printf("identify clusters and count bonds\n"); // identify clusters and count bonds
+    int monomer=0,emptycluster=0;
+    // always first perform cluster_analysis, then clustersize_identification.
     psl->nclusters = cluster_analysis(psl);
     clustersize_identification(psl);
     count_empty_clusters_monomers(psl, &emptycluster, &monomer);
-
-    int nrings=(psl->nbonds + psl->nclusters)-psl->nparts  ;
+    int nrings=(psl->nbonds + psl->nclusters)-psl->nparts  ; // quick way to count # cycli . if a ring has formed, the (psl->nbonds + psl->nclusters) > psl->nparts 
     printf("         nbonds= %d       in %d clusters with %d monomers and %d cycli\n", psl->nbonds, psl->nclusters, monomer,nrings);
 
     switch(sys.sim_type){
         case BMD_ALGORITHM:         
-            printstatusbmd(psl); // print the energy
+            printstatusbmd(psl); 
             break;
         case MC_ALGORITHM: 
             printstatusmc();
             optimizemc();
             break;
     }
-
-
-
-    if((cluster.analysis==1)  && (init==0)){
-        clustersize_freq_update(psl);
-        // print_statistics_file(&cluster.size_histogram,psl);
-        // print_statistics_file(&cluster.size_distribution,psl);
-        // local_density(psl);
-        // N_TPP_bonds(psl);
-        // bond_probability(psl);
-    }
+    
+    // here the version specific measurements etc
+    version_specific_analysis(psl);
 
     if (init){
         memcpy(start_slice,psl,sizeof(Slice));
         init=0;
     }
 
-    
     return;
 }
-
-
-
 
 void count_empty_clusters_monomers(Slice *psl, int *emptyc, int *nmono){
     // count empty clusters and monoemrs
     int check=0;
     for(int id=0;id<psl->nparts;id++){
-        // printf(" id %d has %d particles\n",id,cluster.clustersize[id] );
         /* add up all clustersizes; it should be equal to npart*/
-        check+=cluster.clustersize[id];
+        check+=cluster.clustersizes[id];
         // 
-        if(cluster.clustersize[id]==0){
+        if(cluster.clustersizes[id]==0){
             *emptyc +=1;
         }
-        if(cluster.clustersize[id]==1){
+        if(cluster.clustersizes[id]==1){
             *nmono +=1;
         }
     }
@@ -101,9 +91,10 @@ void count_empty_clusters_monomers(Slice *psl, int *emptyc, int *nmono){
 }
     
 void print_clusterinformation(Slice *psl ){
+    // prints the cluster id and the particles belonging to that cluster to the screen
     for(int id=0;id<psl->nclusters;id++){
-        printf("   ID # %d \\w %d particles:   ", id, cluster.clustersize[id]);
-        for (int n=0;n<cluster.clustersize[id];n++){
+        printf("   ID # %d \\w %d particles:   ", id, cluster.clustersizes[id]);
+        for (int n=0;n<cluster.clustersizes[id];n++){
             printf(" %d, ",cluster.pic[id].stack[n]);
         }
         printf(" \n");
@@ -135,12 +126,12 @@ void finalstat(Slice *psl) {
     // printf("starting with finalstat\n");
     printf("\nFinished Simulation\n");
 
-
-    if(sys.sim_type==0) {
+    switch (sys.sim_type)
+    {
+    case BMD_ALGORITHM:
         printstatusbmd(psl); // print the energy
-
-    }
-    else if(sys.sim_type==2) {
+        break;
+    case MC_ALGORITHM:
         printf("\n*** MC stats **\n");
         optimizemc();
         final_printstatusmc_sub(mc_single);
@@ -150,9 +141,7 @@ void finalstat(Slice *psl) {
             final_printstatusmc_sub(mc_mono);
         }
     }
-    else{
-        error("use only simtype 2 for MC or 0 for bmd");
-    }
+    
     
     //  print RDF to file if rdfanalysis is turned on
     // if(sys.rdfanalysis==1){
@@ -165,11 +154,12 @@ void finalstat(Slice *psl) {
 void print_slice_information(Slice *psl){
     // printing slice information
     int m;
+    double ipartenergy;
     printf("\n     >>>>> Slice Information <<<<<<\n");
     printf("            energy               %10.10lf\n",psl->energy);
     printf("            nbonds               %d\n",psl->nbonds);
     printf("            nparts               %d\n",psl->nparts);
-    if (sys.sim_type==0){
+    if (sys.sim_type==BMD_ALGORITHM){
     printf("             c_time               %10.10lf\n",psl->c_time);
     }
 
@@ -180,13 +170,19 @@ void print_slice_information(Slice *psl){
         printf("                 cluster id    %d     \n",psl->pts[n].cluster_id);
         printf("                 ptype         %d     \n",psl->pts[n].ptype);
         printf("                 position    ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].r.x,psl->pts[n].r.y,psl->pts[n].r.z);
-        printf("                 force       ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].f.x,psl->pts[n].f.y,psl->pts[n].f.z);
-           
+        if (sys.sim_type==BMD_ALGORITHM){ printf("                 force       ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].f.x,psl->pts[n].f.y,psl->pts[n].f.z);
+        }
+
+        ipartenergy=particle_energy(psl, n, 0);
+        gprint(ipartenergy);
+        if (ipartenergy>1000) printf("*****WARNING BIG ENERGY****\n");
+
         for(m=0; m<sys.particletype[psl->pts[n].ptype].nsites;m++){
             printf("                 patchvector          ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].patchvector[m].x,psl->pts[n].patchvector[m].y,psl->pts[n].patchvector[m].z);
         }
-            printf("                 has %d bonds with:           ",psl->pts[n].nbonds);
-
+        printf("                 has %d bonds with:           ",psl->pts[n].nbonds);
+        
+        
         for(m=0; m<psl->pts[n].nbonds;m++){
            printf("%d ",psl->pts[n].bonds[m]);
            printf("(EBond=%.15lf),    ",psl->pts[n].bond_energy[m]);
@@ -196,39 +192,7 @@ void print_slice_information(Slice *psl){
     return;
 }
 
-void print_adjacency_matrix_coordinates(Slice *psl){
-    /* the adjacency matrix is a NxN matrix with zero's and one's
-    0 if no bond between particle i and j, and a 1 if there is a bond.
-    If the total energy is calculated, the bonds are tracked.  see potential_energy(Slice *psl)
-    We will first try to print the whole complete adjacency matrix.
-    And evaluate later if the files are not getting too big. THere is a lot of redundant data
-    We might want to only print which particles have a bond, and later construct the adjacency matrix in python
-    */
-    int ipart, jpart,n;
-    FILE *fp;
-    Pts *psi;
 
-    if((fp=fopen("adjacency_matrix_coordinates.out","a"))==NULL) {;
-        printf("Warning: can not open adjacency_matrix.out\n");
-    }
-    else {
-        /*we loop over the particles. 
-        in psi->bonds[psi->nbonds]=jpart the particle numbers are printed which have a bond with psi
-        start with n=0, there are no bond found with ipart yet*/
-        for(ipart=0; ipart<psl->nparts; ipart++) {
-            psi = &psl->pts[ipart];
-            for(n=0; n<psi->nbonds; n++){
-                jpart=psi->bonds[n];
-                if(jpart>ipart){
-                    fprintf(fp,"%d,%d\n", ipart,jpart); 
-                }
-            }
-        }
-    }
-    fprintf(fp,"\n");    
-    fclose(fp);
-    return;
-}
 
 
 void printstatusbmd(Slice *psl) {
@@ -244,57 +208,21 @@ void printstatusbmd(Slice *psl) {
 }
 
 
-void printenergy_warmup(Slice *psl){
+
+void printenergy(Slice *psl, char ext[]){
     /*Printing the energy to a file. Each printed energy is after ncycle2 steps */
-    FILE *energyfile;
-    char energyfilename[100];
-    char* a = "energy_warmup";
-    char* extension = ".out";
-
-
+    char value[MAX_VALUE_LENGTH];
     
-    snprintf( energyfilename, sizeof( energyfilename ), "%s%s", a,  extension );
-    energyfile = fopen(energyfilename,"a");
-
-
-    if (energyfile == NULL){
-            printf("Error with opening \"energy_warmup.out\" file");
+    switch(sys.sim_type){
+        case MC_ALGORITHM:
+            snprintf( value, sizeof( value ), "%8.12lf", psl->energy );
+            break;
+        case BMD_ALGORITHM:
+            snprintf( value, sizeof( value ), "%8.12lf %8.12lf", psl->c_time, psl->energy );
+            break;
     }
-    else{    
-        if(sys.sim_type==0){
-            fprintf(energyfile, "%8.12lf %8.12lf\n", psl->c_time, slice[0].energy);  }
-        else{
-                fprintf(energyfile, "%8.12lf\n", slice[0].energy);   }  
-    }
-    fclose(energyfile);
 
-    return;
-
-}
-
-void printenergy(Slice *psl){
-    /*Printing the energy to a file. Each printed energy is after ncycle2 steps */
-    FILE *energyfile;
-    char energyfilename[100];
-    char* a = "energy";
-    char* extension = ".out";
-
-//    printf(" >>>>>>>>>>>>>>>>>>>>PRINGITN ENERGY.OUT\n");
-    snprintf( energyfilename, sizeof( energyfilename ), "%s%s", a,  extension );
-    energyfile = fopen(energyfilename,"a");
-
-
-    if (energyfile == NULL){
-            printf("Error with opening %s file \n",energyfilename);
-            error("Error");
-    }
-    else{    
-        if(sys.sim_type==0){
-            fprintf(energyfile, "%8.12lf %8.12lf\n", psl->c_time, slice[0].energy);  }
-        else{
-                fprintf(energyfile, "%8.12lf\n", slice[0].energy);   }  
-    }
-    fclose(energyfile);
+    write_append_to_file( "energy",  ext, 'a' ,value);
 
     return;
 
@@ -330,7 +258,9 @@ void printing_trajectory(Slice *psl){
             q2=psi->q.q2;
             q3=psi->q.q3;
 
-            fprintf(coordinatesfile, "%.1f %d %.4lf %.4lf %.3lf %.3lf %.3lf %.3lf %.3lf\n", ctime,ipart,x,y,z,q0,q1,q2,q3 );  
+            fprintf(coordinatesfile, "%.1f %d %.4lf %.4lf %.3lf %.3lf %.3lf %.3lf %.3lf\n", 
+            ctime,ipart,x,y,z,
+            q0,q1,q2,q3 );  
 
         }
         // fprintf(coordinatesfile, "\n");
@@ -342,54 +272,9 @@ void printing_trajectory(Slice *psl){
 }
 
 
-
-
-void print_energy_s_theta1_theta2(Slice *psl){
-    /*Printing the energy to a file. Each printed energy is after ncycle2 steps */
-    FILE *energyfile;
-    double s, r, cositheta,cosjtheta,cosijtheta, s_treshold=0.5,anglei, anglej;
-    int i,j;
-    vector rij,u1;
-    double Erep, Ec, S;
-    
-
-
-    if((energyfile=fopen("ctime_s_theta1_theta2_energy.out","a"))==NULL) {;
-            printf("Error with opening \"print_energy_s_theta1_theta2.out\" file");
-    }
-    else{  
-        for (i=0;i<psl->nparts; i++){
-            for (j=i+1;j<psl->nparts; j++){
-                particles_distance_length_vector(psl,i,j,&s,&r,&rij); 
-
-                if(s<s_treshold && s>0.0) { 
-                    scalar_divide(rij,r,u1);
-                    orientation_parameters( psl,  i,  j, u1, &cositheta, &cosjtheta, &cosijtheta);
-                    Pts *psi=&psl->pts[i],*psj=&psl->pts[j];
-                    
-                    anglei=cosangle_to_angle(cositheta);
-                    anglej=cosangle_to_angle(cosjtheta);
-
-                    // the energy components of the bond
-                    Erep=potential_repulsive_energy_sdist(s);
-                    Ec = potential_attractive_energy_sdist(s);
-                    S=S_value(cositheta,cosjtheta,0,psi->ptype, psj->ptype);
-
-                    fprintf(energyfile, "%8.6lf %8.12lf %8.12lf %8.12lf %8.12lf %8.12lf %8.12lf %8.12lf\n", psl->c_time,  s, anglei, anglej, Erep+Ec*S, S, Erep, Ec );     
-                     
-                }
-            }
-        }
-    }
-    fclose(energyfile);
-
-    return;
-
-}
-
-
 void print_pos_sites(Slice *psl){
     //looop over the particles and print its position and its patches
+    // was used for debugging 
     int ipart,p, s;
     Pts *psi;
 
@@ -403,77 +288,28 @@ void print_pos_sites(Slice *psl){
 }
 
 
-// analysis
-// void printrdf() {
-//     /* this function prints the RDF, which is stored in rdf_averag, to the file "rdf.out". The rdf per slice is calculated in calc_rdf_localCN() */
-//     int i;
-//     FILE *rdffile;
-//     double maxl;
-//     MIN(sys.boxl.x,sys.boxl.y,maxl);
 
-//     rdffile = fopen("rdf.out","w");
-//     printf("\nPrinting the RDF to rdf.out\n");
-
-//     if (rdffile == NULL){
-//             printf("Error with opening \"rdf.out\" file");
-//     }
-//     else{
-//         for(i=0; i<RDFBINS/2; i++){
-//             fprintf(rdffile, "%2.4lf  %.5lf\n", i*maxl/RDFBINS, rdf_average[i].sum/rdf_average[i].n);
-//         }
-//     }
-//     fclose(rdffile);
-//     return;
-// }
-
-void print_statistics_N1(Statistics stats_name, char filename1[100]){
+void print_StatsLength_to_file(StatsLength *stats_name){
     FILE *file;
-    char *pt,line[NPART], filename[100];
-    int i=0, dummy;
-    char* extension = ".out";
-  
-    snprintf(filename, sizeof(filename), "%s%s", filename1,extension);
-    
-    
-    if ((file = fopen(filename,"w"))==NULL){
-        printf("%s \n", filename);
-        error("input: can't be opened \n");
-    }
-    else{
-        // printf("printing statistics to %s\n", filename );
-        fprintf(file, "%8.12lf %8.12lf %ld\n",  stats_name.mean, stats_name.variance2,stats_name.n); 
-            
-    }
-    fclose(file);
-
-    return;
-}
-
-void print_statistics_file(StatsLength *stats_name, Slice *psl){
-    FILE *file;
-    char *pt,line[NPART], filename[100];
     int i, do_print=0;
 
-    for(i=0;i<psl->nparts;i++){ /*the length histogram starts with length=1; the minimum length of a chain. therefore i+1*/ 
+    // check if there is data in stats_name 
+    for(i=0;i<stats_name->length;i++){ 
         if (stats_name->bin[i].n>0){
-            // printf("at bin %d there are more than zero measurements %s\n",i,stats_name->bin[i].n)
             do_print=1;
             break;
         }
     }
 
     if (do_print){
-        memcpy(filename,stats_name->filename,sizeof(filename));  
-        
-        if ((file = fopen(filename,"w"))==NULL){
-            printf("%s \n", filename);
-            error("input: can't be opened \n");
+        if ((file = fopen(stats_name->filename,"w"))==NULL){
+            printf("%s \n", stats_name->filename);
+            error("file can't be opened \n");
         }
         else{
-            // printf("printing statistics to %s\n", filename );
-            for(i=0;i<psl->nparts;i++){ /*the length histogram starts with length=1; the minimum length of a chain. therefore i+1*/ 
-                fprintf(file, "%d %8.12lf %8.12lf %ld\n", i+1, stats_name->bin[i].mean, stats_name->bin[i].variance2,stats_name->bin[i].n); 
-                // printf("%d %8.12lf %8.12lf %d\n", i, stats_name->length[i].mean, stats_name->length[i].variance2,stats_name->length[i].n);
+            // printing to file
+            for(i=0;i<stats_name->length;i++){ 
+                fprintf(file, "%8.12lf %8.12lf %ld\n", stats_name->bin[i].mean, stats_name->bin[i].variance2,stats_name->bin[i].n); 
             }
         }
         fclose(file);
@@ -482,198 +318,61 @@ void print_statistics_file(StatsLength *stats_name, Slice *psl){
     return;
 }
 
-void append_to_file(char filename[100], int ipart, double value){
-    FILE *fp;
-    char filename_full[150];
-    char* extension = ".out";
-    
-    // the full filname will be composed of 2 parts: filename+"_bondX.out"
-    snprintf(   filename_full, sizeof( filename_full ), "%s_ptype%d%s", filename,ipart, extension );
 
-    if((fp=fopen(filename_full,"a"))==NULL) {; // 
-        printf("Warning: not able to append to %s\n", filename_full);
-        error("stop");
-    }
-    else { fprintf(fp,"%.10lf\n",value); }
-    fclose(fp);
-
-    return;
-}
-
-void print_to_file(char filename[100], int ipart, double value){
-    FILE *fp;
-    char filename_full[150];
-    char* extension = ".out";
-    
-    // the full filname will be composed of 2 parts: filename+"_bondX.out"
-    snprintf(   filename_full, sizeof( filename_full ), "%s_ptype%d%s", filename,ipart, extension );
-
-
-    // printing the S values to file
-    if((fp=fopen(filename_full,"w"))==NULL) {; // 
-        printf("Warning: not able to write to %s\n", filename_full);
-        error("stop");
-    }
-    else { fprintf(fp,"%.10lf\n",value); }
-    fclose(fp);
-
-    return;
-}
-
-void append_to_file2(char filename[100], char value[1000], char extension[100]){
-    // append the file, no overwriting
+bool ends_with_newline(const char *);
+void write_append_to_file(char filename[],  char ext[], char writetype, char value[] ){
+    // either (over)writes or appends to file, writetype="w" or "a", resp.
     // extension is maybe extra part of filename you want to have
-    FILE *fp;
+     FILE *fp;
+    char filename_full[205];
 
-    char filename_full[250];
-    
-    
-    // the full filname will be composed of 2 parts: filename+extension+".out"
-    snprintf(   filename_full, sizeof( filename_full ), "%s%s.out", filename, extension );
-
-
-    if((fp=fopen(filename_full,"a"))==NULL) {; // 
-        printf("Warning: not able to append to %s\n", filename_full);
-        error("stop");
+    // checks if given strings are not too long.
+    if ((strlen(filename) >= MAX_FILENAME_LENGTH) || (strlen(ext) >= MAX_EXT_LENGTH) || (strlen(value) >= MAX_VALUE_LENGTH) || (strlen(value) == 0)){
+        error(" In write_append_to_file():  filename, ext, or value exceeds maximum length");
     }
-    else { fprintf(fp,"%s\n",value); }
-    fclose(fp);
 
-    return;
-}
+    // the full filename will be composed of 2 parts: filename+ext+".out"
+    snprintf(filename_full, sizeof(filename_full), "%s%s.out", filename, ext);
 
-void print_to_file2(char filename[100], char value[1000], char extension[100]){
-    // overwrite the file
-    // extension is maybe extra part of filename you want to have
-    FILE *fp;
-
-    char filename_full[250];
-    
-    
-    // the full filname will be composed of 2 parts: filename+extension+".out"
-    snprintf(   filename_full, sizeof( filename_full ), "%s%s.out", filename, extension );
-
-
-    // printing the S values to file
-    if((fp=fopen(filename_full,"w"))==NULL) {; // 
-        printf("Warning: not able to write to %s\n", filename_full);
-        error("stop");
+    // printing the value to file, choose writing (w) or appending (a)
+    if (writetype != 'w' && writetype != 'a') {
+        printf("Error: Invalid write type '%c'. Use 'w' for writing or 'a' for appending.\n", writetype);
+        return;
     }
-    else { fprintf(fp,"%s\n",value); }
-    fclose(fp);
 
-    return;
-}
-
-void print_xy_positions(Slice *psl){
-    // x   y   fx  fy  particle    time
-    int ipart;
-    static int linecount_xypos=0;
-    static double cycle_mc=0;
-    FILE *posfile;
-    char filename[100];
-    char* a = "xypos";
-    char* extension = ".csv";
-
-    vector v1,r_ref,dv,dv_norm,dr;
-    vector yaxis=nulvec,xaxis=nulvec,drcheck;
-    vector v[psl->nparts],v_new,f_new;
-    double costheta,rotangle;
-    quaternion q;
-    tensor R;
-    vector rotvec;
-
-    yaxis.y=1.;
-    xaxis.x=1.;
-
-
-    snprintf( filename, sizeof( filename ), "%s%s", a,  extension );
-    
-    if( access( filename, F_OK ) == -1 ) {
-        posfile = fopen(filename,"w");
-        if (posfile == NULL){
-            printf("Error with creating \"%s\" file",filename);
-        }
-        else{
-            printf("creating the file %s",filename);
-            fprintf(posfile,",x,y,fx,fy,particle,time\n");
-        }
-        fclose(posfile);
+    if ((fp = fopen(filename_full, writetype == 'w' ? "w" : "a")) == NULL) {
+        printf("Error: Unable to open file '%s' for %s mode.\n", filename_full, writetype == 'w' ? "writing" : "appending");
+        return;
     }
-    
-    posfile = fopen(filename,"a");
-    if (posfile == NULL){
-        printf("Error with opening \"%s\" file",filename);
-    }
-    else{
-        printf("\nPrinting the xy positions to %s\n",filename);
-        /* rotate the chain before printing, such that the chain is oriented along the x-axis. This is better for the analysis tool of Simon*/
-        /*  translate all particles such that v0=(0,0,0) 
-            take the angle between  the x-value of particle 0 along x-axis; the y-value should be around 0.
-            and the vector between particle 0 and N-1
-            use this angle to do the rotation via the quaternion in z-axis QuaternionZaxis(degree) */
-       
-        // calculate ther rotation matrix R
-        
-        // shift the reference frame. walk through the chain
-        r_ref=psl->pts[0].r;
-        v[0]=nulvec;// /choose particle 0 as reference
-        // vprint(v[0]);
-        for(ipart=1; ipart<psl->nparts; ipart++) {
-            //the vector difference between particle i and j
-            vector_minus(psl->pts[ipart].r,psl->pts[ipart-1].r,dr);
-            pbc(dr,sys.boxl);
-            vector_add(v[ipart-1],dr,v[ipart]);
-            // vprint(v[ipart]);
-        }
-        
-        // calculate the rotation matrix
-        dv.x=v[psl->nparts-1].x;
-        dv.y=v[psl->nparts-1].y;
-        dv.z=0.;
 
-        scalar_divide(dv,sqrt(vector_inp(dv,dv)),dv_norm); 
-
-        /*build in if angle>180(== costheta<0, the rotation becomes is 360-angle)*/
-        costheta=vector_inp(dv_norm,xaxis);
-        if (dv_norm.y>0.){
-            //rotations are done tegen de klok in
-            rotangle=360.-acos(costheta)*180./PI;
-
-        }
-        else{
-            rotangle=acos(costheta)*180./PI;
-        }
-        // gprint(rotangle);
-        q=QuaternionZaxis(rotangle);
-        R = getrotmatrix(q);
-        
-        //perform the rotarion
-        for(ipart=0; ipart<psl->nparts; ipart++) {
-            matrix_x_vector(R, v[ipart], v_new);
-
-            //print to file        
-            if (sys.sim_type==MC_ALGORITHM){ //mc
-                fprintf(posfile,"%d,%.5lf,%.5lf,0.0,0.0,%d,%.5lf\n", linecount_xypos,v_new.x, v_new.y,ipart ,cycle_mc);
-                linecount_xypos++;
-            }   
-            else if(sys.sim_type==BMD_ALGORITHM){ //bmd
-                matrix_x_vector(R, psl->pts[ipart].f, f_new);
-                // vprint(psl->pts[ipart].f);
-                // gprint(vector_inp(psl->pts[ipart].f,psl->pts[ipart].f));
-                // vprint(f_new);
-                // gprint(vector_inp(f_new,f_new));
-                fprintf(posfile,"%d,%.5lf,%.5lf,%.5lf,%.5lf,%d,%.5lf\n", linecount_xypos ,v_new.x, v_new.y,f_new.x,f_new.y,ipart ,psl->c_time);
-                linecount_xypos++;
-            }         
-        }
+    // check for \n ?? it already prints it? 
+    if (ends_with_newline(value)==0){
+        // printf("ADDING NEW LINE\n");
+        strcat(value, "\n");
     } 
-    
-    cycle_mc+=0.1;
-    fclose(posfile);
-    return;
 
+    // print to file
+    if (fprintf(fp, "%s", value) < 0) {
+        printf("Error: Failed to write data to file '%s'.\n", filename_full);
+        fclose(fp);
+        return;
+    }
+    // close the file
+    fclose(fp); 
+    return;
 }
+
+bool ends_with_newline(const char *str) {
+    int len = strlen(str);
+    // dprint(len >= 2);
+    // dprint(str[len - 2] == '\\');
+    // dprint(str[len - 1] == 'n');
+
+    // printf("%s",str);
+
+    return (len >= 2) && (str[len - 2] == '\\') && ( str[len - 1] == 'n');
+}
+
 
 
 

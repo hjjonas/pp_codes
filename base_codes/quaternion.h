@@ -7,9 +7,7 @@
 /*---------------------------------------------------------------------------*/
 
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
-typedef struct tensor_type {
-    vector        x,y,z;
-} tensor;
+
 
 typedef struct quattensor_type {
 
@@ -29,7 +27,7 @@ extern quaternion QuaternionXaxis( double );
 extern quaternion QuaternionYaxis( double );
 extern quaternion QuaternionZaxis( double );
 extern void rotate_quaternion_ipart( Slice *, int , quaternion  );
-extern quaternion FlipQuaternion(vector  , double ) ;
+extern quaternion RotateQuaternion(vector  , double ) ;
 extern quaternion normalize_quat(quaternion );
 /*---------------------------------------------------------------------------*/
 

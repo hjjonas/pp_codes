@@ -1,6 +1,6 @@
-/*-------------------------------------------------------*/
-/*  here are analysis function that are NOT specific to a certain simulation or project */
-/*-------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------*/
+/*      here are analysis function that are NOT specific to a certain simulation or project */
+/*---------------------------------------------------------------------------------------------------------*/
 
 #include "path.h"
 
@@ -40,11 +40,11 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
     // if a structure crossed the pbc, rotating it is not straightforward. 
     // with this fucntion you first check if structure crosses pbc ; are there particles 1 isgma from the border? in the 2D plane
     int i,ipart,jpart;
-    int clusteri_size=cluster.clustersize[icluster];
+    int clusteri_size=cluster.clustersizes[icluster];
     vector dr; 
   
-    Slice *copyslice = malloc(sizeof(Slice));
-    memcpy(copyslice, psl, sizeof(Slice));
+    Slice *cp_slice = malloc(sizeof(Slice));
+    memcpy(cp_slice, psl, sizeof(Slice));
 
     Picl pici=cluster.pic[icluster];
     IntArray particlesleft_list; //
@@ -68,23 +68,23 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
         // printf(" perform DFS with   start from particle %d \n", start);
         if (checkElementXIntArray(&particlesleft_list, jpart )==1){
             // new position next
-            dr=particles_vector(psl, ipart, jpart); //return vector from i to j
-            vector_minus(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r); // of course dont do pbc after this step! 
+            dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
+            vector_add(cp_slice->pts[ipart].r,dr,cp_slice->pts[jpart].r); // of course dont do pbc after this step! 
 
-            DFS( psl,jpart,  &particlesleft_list ,copyslice );
+            DFS( psl,jpart,  &particlesleft_list ,cp_slice );
         }
     }
     
-    // when done, free the memory!!
+    // when done, free the memory!
     freeIntArray(&particlesleft_list);
 
     //copy new structure to psl;
-    memcpy(psl,copyslice,  sizeof(Slice));
-    free(copyslice);
+    memcpy(psl,cp_slice,  sizeof(Slice));
+    free(cp_slice);
     return;
 }
 
-void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
+void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *cp_slice ){
     //  Depth First Search  adapted from https://www.codewithharry.com/videos/data-structures-and-algorithms-in-hindi-89/
     //  By HJ Jonas oktober 2022
     //  it walks over the particles and performs DPF
@@ -104,14 +104,16 @@ void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
         j_inlist=checkElementXIntArray(particlesleft_list, jpart );
         if(j_inlist==1){
             // new position jpart, and perform DFS on jpart
-            dr=particles_vector(psl, ipart, jpart); // points from i to j
-            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);     
-            DFS( psl,jpart,  particlesleft_list,  copyslice );
+            dr=particles_vector(psl,  ipart, jpart ); // points from i to j
+            vector_add(cp_slice->pts[ipart].r,dr,cp_slice->pts[jpart].r);    
+            DFS( psl,jpart,  particlesleft_list,  cp_slice );
         }
     }
 
     return;
 }
+
+
 
 
 int bond_check(Slice *psl, int i, int j){
@@ -151,7 +153,7 @@ void particles_distance_length_vector(Slice *psl, int i, int j, double *distance
     bond_vec = particles_vector(psl, i, j);
     dr2 =vector_inp(bond_vec,bond_vec);
     dr=sqrt(dr2);
-    dist=dr - sys.particletype[psl->pts[i].ptype].radius-sys.particletype[psl->pts[j].ptype].radius;
+    dist=dr - (sys.particletype[psl->pts[i].ptype].radius+sys.particletype[psl->pts[j].ptype].radius);
     
     //return
     *distance=dist;
@@ -163,14 +165,14 @@ void particles_distance_length_vector(Slice *psl, int i, int j, double *distance
 }
 
 double particles_distance(Slice *psl, int i, int j){
-    /* calculates and returns the distance between two particles. specify with pbc if pbc should be on or off*/
+    /* calculates and returns the surface-surface distance between two particles. specify with pbc if pbc should be on or off*/
 
     double dr2, r;
     vector dr;
 
     dr = particles_vector(psl, i, j);
     dr2 =vector_inp(dr,dr);
-    r=sqrt(dr2) - sys.particletype[psl->pts[i].ptype].radius-sys.particletype[psl->pts[j].ptype].radius;
+    r=sqrt(dr2) - (sys.particletype[psl->pts[i].ptype].radius+sys.particletype[psl->pts[j].ptype].radius);
     
     return r;
 }
@@ -180,32 +182,13 @@ vector particles_vector(Slice *psl, int i, int j){
         return vector from i pointing to j*/
     vector dr;
 
-    vector_minus(psl->pts[j].r,psl->pts[i].r,dr); /* dr of particle j and k */
+    vector_minus(psl->pts[j].r,psl->pts[i].r,dr); 
     pbc(dr, sys.boxl); 
     
     return dr;  
 }
 
-void clustersize_freq_update(Slice *psl){
-    /*this function saves the frequency of occurence of the clusterlengths  */
 
-    int i,l;
-    int   freq_clusterlength[NPART]={0};
-    
-    for(i=0;i<psl->nclusters;i++){
-        freq_clusterlength[cluster.clustersize[i]-1]++; // use -1 here because size one is the smallest size
-    } 
-
-    for(l=0;l<psl->nparts;l++){
-        /*loops over the lengths which has maximumvalue of psl->nparts*/
-        // update_average(chain.length_histogram[i], freq_clusterlength[i]);
-        
-        running_statistics(&cluster.size_histogram.bin[l], freq_clusterlength[l]);
-        running_statistics(&cluster.size_distribution.bin[l], (double)freq_clusterlength[l]/psl->nclusters);
-    } 
-
-    return; 
-}
 
 
 
@@ -290,16 +273,16 @@ void clustersize_identification(Slice *psl){
     and counts how many clusters of a certain size there are in cluster.clustersize.*/
     int id,ipart, nclusters=psl->nclusters, n;
     Picl pici;
-    int  clustersize[NPART]={0};
+    int  clustersizes[NPART]={0};
 
     // printf("loop over all particles en deel ze in in een picl\n" );
     //loop over all particles en deel ze in in een picl 
     for(ipart=0;ipart<psl->nparts;ipart++){
         id = psl->pts[ipart].cluster_id;
-        cluster.pic[id].stack[clustersize[id]]=ipart;
-        clustersize[id]++;
+        cluster.pic[id].stack[clustersizes[id]]=ipart;
+        clustersizes[id]++; // this is a list which tells you how many particles the cluster with clusterid "id" is 
     }
-    memcpy(cluster.clustersize, clustersize, sizeof(clustersize));
+    memcpy(cluster.clustersizes, clustersizes, sizeof(clustersizes));
 
     return;
 }
