@@ -34,6 +34,7 @@ void terminate_block(Slice *psl) {
     printf("         the total energy is %lf\n", psl->energy);
    
     // print to file
+    
     printenergy(psl, ""); 
     conf_output(psl);   
 
@@ -153,6 +154,7 @@ void finalstat(Slice *psl) {
 void print_slice_information(Slice *psl){
     // printing slice information
     int m;
+    double ipartenergy;
     printf("\n     >>>>> Slice Information <<<<<<\n");
     printf("            energy               %10.10lf\n",psl->energy);
     printf("            nbonds               %d\n",psl->nbonds);
@@ -168,13 +170,19 @@ void print_slice_information(Slice *psl){
         printf("                 cluster id    %d     \n",psl->pts[n].cluster_id);
         printf("                 ptype         %d     \n",psl->pts[n].ptype);
         printf("                 position    ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].r.x,psl->pts[n].r.y,psl->pts[n].r.z);
-        printf("                 force       ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].f.x,psl->pts[n].f.y,psl->pts[n].f.z);
-           
+        if (sys.sim_type==BMD_ALGORITHM){ printf("                 force       ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].f.x,psl->pts[n].f.y,psl->pts[n].f.z);
+        }
+
+        ipartenergy=particle_energy(psl, n, 0);
+        gprint(ipartenergy);
+        if (ipartenergy>1000) printf("*****WARNING BIG ENERGY****\n");
+
         for(m=0; m<sys.particletype[psl->pts[n].ptype].nsites;m++){
             printf("                 patchvector          ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].patchvector[m].x,psl->pts[n].patchvector[m].y,psl->pts[n].patchvector[m].z);
         }
-            printf("                 has %d bonds with:           ",psl->pts[n].nbonds);
-
+        printf("                 has %d bonds with:           ",psl->pts[n].nbonds);
+        
+        
         for(m=0; m<psl->pts[n].nbonds;m++){
            printf("%d ",psl->pts[n].bonds[m]);
            printf("(EBond=%.15lf),    ",psl->pts[n].bond_energy[m]);
@@ -207,10 +215,10 @@ void printenergy(Slice *psl, char ext[]){
     
     switch(sys.sim_type){
         case MC_ALGORITHM:
-            snprintf( value, sizeof( value ), "%8.12lf\n", psl->energy );
+            snprintf( value, sizeof( value ), "%8.12lf", psl->energy );
             break;
         case BMD_ALGORITHM:
-            snprintf( value, sizeof( value ), "%8.12lf %8.12lf\n", psl->c_time, psl->energy );
+            snprintf( value, sizeof( value ), "%8.12lf %8.12lf", psl->c_time, psl->energy );
             break;
     }
 
@@ -311,7 +319,7 @@ void print_StatsLength_to_file(StatsLength *stats_name){
 }
 
 
-
+bool ends_with_newline(const char *);
 void write_append_to_file(char filename[],  char ext[], char writetype, char value[] ){
     // either (over)writes or appends to file, writetype="w" or "a", resp.
     // extension is maybe extra part of filename you want to have
@@ -319,7 +327,7 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
     char filename_full[205];
 
     // checks if given strings are not too long.
-    if ((strlen(filename) >= MAX_FILENAME_LENGTH) || (strlen(ext) >= MAX_EXT_LENGTH) || (strlen(value) >= MAX_VALUE_LENGTH)){
+    if ((strlen(filename) >= MAX_FILENAME_LENGTH) || (strlen(ext) >= MAX_EXT_LENGTH) || (strlen(value) >= MAX_VALUE_LENGTH) || (strlen(value) == 0)){
         error(" In write_append_to_file():  filename, ext, or value exceeds maximum length");
     }
 
@@ -337,8 +345,14 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
         return;
     }
 
+    // check for \n ?? it already prints it? 
+    if (ends_with_newline(value)==0){
+        // printf("ADDING NEW LINE\n");
+        strcat(value, "\n");
+    } 
+
     // print to file
-    if (fprintf(fp, "%s\n", value) < 0) {
+    if (fprintf(fp, "%s", value) < 0) {
         printf("Error: Failed to write data to file '%s'.\n", filename_full);
         fclose(fp);
         return;
@@ -348,6 +362,16 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
     return;
 }
 
+bool ends_with_newline(const char *str) {
+    int len = strlen(str);
+    // dprint(len >= 2);
+    // dprint(str[len - 2] == '\\');
+    // dprint(str[len - 1] == 'n');
+
+    // printf("%s",str);
+
+    return (len >= 2) && (str[len - 2] == '\\') && ( str[len - 1] == 'n');
+}
 
 
 
