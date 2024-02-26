@@ -75,7 +75,7 @@ void free_all_memory(void){
 	free(&slice[0]);
 
 	if (sys.sim_type==MC_ALGORITHM){
-        free(&psl_old[0]);
+        free(&cp_slice[0]);
     }
 
 	return;
@@ -173,12 +173,8 @@ void print_xy_positions(Slice *psl){
                 fprintf(posfile,"%d,%.5lf,%.5lf,0.0,0.0,%d,%.5lf\n", linecount_xypos,v_new.x, v_new.y,ipart ,cycle_mc);
                 linecount_xypos++;
             }   
-            else if(sys.sim_type==BMD_ALGORITHM){ //bmd
+            else if(sys.sim_type==BMD_ALGORITHM){ //bmd, also print forces
                 matrix_x_vector(R, psl->pts[ipart].f, f_new);
-                // vprint(psl->pts[ipart].f);
-                // gprint(vector_inp(psl->pts[ipart].f,psl->pts[ipart].f));
-                // vprint(f_new);
-                // gprint(vector_inp(f_new,f_new));
                 fprintf(posfile,"%d,%.5lf,%.5lf,%.5lf,%.5lf,%d,%.5lf\n", linecount_xypos ,v_new.x, v_new.y,f_new.x,f_new.y,ipart ,psl->c_time);
                 linecount_xypos++;
             }         
@@ -191,39 +187,3 @@ void print_xy_positions(Slice *psl){
 
 }
 
-void DFS_tailflip(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *cp_slice , tensor R, quaternion dq){
-    //  Depth First Search for tailflip
-    vector dr;
-    int jpart,j_inlist;
-    vector rotvec;
-    quaternion dqrot;
-
-
-
-    // remove ipart from list, else you will find the bond back to ipart. Now you will walk forward to next bond
-    removeElementXIntArray(particlesleft_list,  ipart );
-
-    // loop over the bound particles of ipart, to see if you have visited them
-    for (int n = 0; n < psl->pts[ipart].nbonds; n++){   
-        jpart=psl->pts[ipart].bonds[n]; // the bound particles to ipart;
-  
-        //  did you already visit jpart?
-        j_inlist=checkElementXIntArray(particlesleft_list, jpart );
-        if(j_inlist==1){
-            
-            // perform the tailflip here: 
-            dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
-            matrix_x_vector(R, dr, rotvec);
-            vector_add(rotvec, cp_slice->pts[ipart].r, cp_slice->pts[jpart].r)
-    
-            /* rotate the quaternion*/
-            quat_times(dq,cp_slice->pts[jpart].q,dqrot);
-            cp_slice->pts[jpart].q = dqrot;
-            update_patch_vector_ipart(cp_slice,jpart); 
-
-            DFS_tailflip( psl,jpart,  particlesleft_list,  cp_slice , R, dq );
-        }
-    }
-
-    return;
-}
