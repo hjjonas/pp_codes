@@ -67,7 +67,6 @@ void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *n
 
     double dt,lambdaq,fnorm, dr2;
 
-
     for( int ipart=0; ipart<psl->nparts; ipart++) {
         psi = &psl->pts[ipart];
         ptypei=&sys.particletype[psi->ptype];
@@ -85,8 +84,6 @@ void integrate_time(Slice *psl, double timestep, double timestep_randomD, int *n
         vector_add(psi->r,xi,psi->r);
         if(sys.nearest_neighbor){ vector_add(psi->dr,xi,psi->dr); }
         
-
-
         if(sys.nearest_neighbor==1){ 
             dr2 = vector_inp(psi->dr , psi->dr);
             if ((dr2 > list.cutoff_buffer2)) {
@@ -359,9 +356,10 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
         scalar_divide(rij,r,rnorm); 
         // vprint(rnorm);
 
-        /*add the repulsive force (=a positive number) positively to i and negatively to j (as rij points toward from j to i)*/
-        scalar_plustimes(rnorm,fmag,psi->f);
-        scalar_mintimes(rnorm,fmag,psj->f);
+        // rij and rnorm point from i to j
+        /*add the abs repulsive force (=a positive number) negatively to i and positively to j (as rij points toward from i to j)*/
+        scalar_mintimes(rnorm,fmag,psi->f);
+        scalar_plustimes(rnorm,fmag,psj->f);
         /*repulsive radial force done*/
     
            
@@ -383,10 +381,6 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
             double Umag,fmagP,fmagrinv,dSdcostheta;
             vector rcrosspi,rcrosspj,piperpr,pjperpr;
 
-            /*if you are here. you found the patches that are connected*/
-            // add_bond_information(psl,ipart,jpart,0,0,0);
-            // add_bond_information(psl,jpart,ipart,0,0,0);
-
             // /* attractive energy and force of the patches wihtout angular correction */
             Umag = fabs(potential_attractive_energy_sdist(s)) ;  // Umag is a negative number; do absolute value
             fmag = fabs(bond_attractive_force(s)); // Fc <=0 , thus fabs() 
@@ -397,24 +391,25 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
             /*the effective attractive force(fmagP). The particle attract, so mintimes on i and plustimes on j */
 
             //the radial attractive force  along rnorm
-            scalar_mintimes(rnorm,fmagP,psi->f);
-            scalar_plustimes(rnorm,fmagP,psj->f);
+            scalar_plustimes(rnorm,fmagP,psi->f);
+            scalar_mintimes(rnorm,fmagP,psj->f);
 
             // printf("patch radial interaction \n");
-            // vector cross is right hand rule, wijsv. = a , middel v. = b, duim: a x b, 
+            
             /*the torque = p x rnorm , so here rcrosspi = -torque (due to direction of rnorm)*/
             scalar_times(rnorm,-1.,min_rnorm); //make here -rnorm, because you need to flip the rnorm vector, to find p1 (and patch angle) correctly.
-            p1= find_directing_patchvector(psl, ipart,  min_rnorm);
-            p2= find_directing_patchvector(psl, jpart,  rnorm);
+            p1= find_directing_patchvector(psl, ipart,  rnorm);
+            p2= find_directing_patchvector(psl, jpart,  min_rnorm);
 
+            // vector cross is right hand rule: wijsv. = a , middel v. = b, duim: a x b, 
             vector_cross(rnorm,p1,rcrosspi);
-            vector_cross(rnorm,p2,rcrosspj);
+            vector_cross(min_rnorm,p2,rcrosspj);
 
             /*the direction of the force that bring patch back to center,ie. aligning with rnorm*/
-            /*rnorm points form j to i*/
+            /*rnorm points form i to j*/
             /*pi is projected onto pi*/
             vector_cross(rnorm,rcrosspi,piperpr);
-            vector_cross(rnorm,rcrosspj,pjperpr)
+            vector_cross(min_rnorm,rcrosspj,pjperpr)
 
             //"sliding" radial force, the one perperdicular to rnorm see eqn 4 of the Allen paper
             //CALCULATE DEL U / DEL COSTHETA_i derivative to i
@@ -423,28 +418,24 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
             rinv=1./r; 
             fmagrinv=fmag*rinv;
 
-            scalar_plustimes(piperpr,fmagrinv,psi->f);
-            scalar_mintimes(piperpr,fmagrinv,psj->f);
-            // vprint(psi->f);
-            // vprint(psj->f);
+            // mintimes because its fmag=|-F| on psi, and plustimes on psj
+            scalar_mintimes(piperpr,fmagrinv,psi->f);
+            scalar_plustimes(piperpr,fmagrinv,psj->f);
 
-
-            /*rcrosspi is -torque and fmag is -F, therefore plustimes */
+            /* rcrosspi is in the directoin of the torque and fmag is |-F|, therefore mintimes */
             // TORQUE on particle i
             // see after eq. 4 of Allen Paper for torque expression
-            scalar_plustimes(rcrosspi,fmag,psi->t);
+            scalar_mintimes(rcrosspi,fmag,psi->t);
             
             // DEL U / DEL COSTHETA_j derivative to j
             dSdcostheta  = dS_dcostheta(psl,cosjtheta,jpart,cositheta, ipart);
-            fmag = fabs((Umag)*dSdcostheta);
+            fmag = fabs(Umag*dSdcostheta);
             fmagrinv=fmag*rinv;
-            scalar_mintimes(pjperpr,fmagrinv,psi->f);
-            scalar_plustimes(pjperpr,fmagrinv,psj->f);
+            scalar_mintimes(pjperpr,fmagrinv,psi->f);   //pjperpr  mintimes on i
+            scalar_plustimes(pjperpr,fmagrinv,psj->f); // pjperpr plustimes on j 
 
             // TORQUE on particle j
             scalar_mintimes(rcrosspj,fmag,psj->t);
-
-
         }
 
     }
