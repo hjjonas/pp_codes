@@ -68,14 +68,14 @@ void linked_structure_icluster(Slice *psl, int icluster, int ipart_ref){
         // printf(" perform DFS with   start from particle %d \n", start);
         if (checkElementXIntArray(&particlesleft_list, jpart )==1){
             // new position next
-            dr=particles_vector(psl, ipart, jpart); //return vector from i to j
-            vector_minus(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r); // of course dont do pbc after this step! 
+            dr=particles_vector(psl,  ipart, jpart); //return vector from ipart to jpart
+            vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r); // of course dont do pbc after this step! 
 
             DFS( psl,jpart,  &particlesleft_list ,copyslice );
         }
     }
     
-    // when done, free the memory!!
+    // when done, free the memory!
     freeIntArray(&particlesleft_list);
 
     //copy new structure to psl;
@@ -104,7 +104,7 @@ void DFS(Slice *psl,int ipart, IntArray *particlesleft_list, Slice *copyslice ){
         j_inlist=checkElementXIntArray(particlesleft_list, jpart );
         if(j_inlist==1){
             // new position jpart, and perform DFS on jpart
-            dr=particles_vector(psl, ipart, jpart); // points from i to j
+            dr=particles_vector(psl,  ipart, jpart ); // points from i to j
             vector_add(copyslice->pts[ipart].r,dr,copyslice->pts[jpart].r);     
             DFS( psl,jpart,  particlesleft_list,  copyslice );
         }
@@ -151,7 +151,7 @@ void particles_distance_length_vector(Slice *psl, int i, int j, double *distance
     bond_vec = particles_vector(psl, i, j);
     dr2 =vector_inp(bond_vec,bond_vec);
     dr=sqrt(dr2);
-    dist=dr - sys.particletype[psl->pts[i].ptype].radius-sys.particletype[psl->pts[j].ptype].radius;
+    dist=dr - (sys.particletype[psl->pts[i].ptype].radius+sys.particletype[psl->pts[j].ptype].radius);
     
     //return
     *distance=dist;
@@ -163,14 +163,14 @@ void particles_distance_length_vector(Slice *psl, int i, int j, double *distance
 }
 
 double particles_distance(Slice *psl, int i, int j){
-    /* calculates and returns the distance between two particles. specify with pbc if pbc should be on or off*/
+    /* calculates and returns the surface-surface distance between two particles. specify with pbc if pbc should be on or off*/
 
     double dr2, r;
     vector dr;
 
     dr = particles_vector(psl, i, j);
     dr2 =vector_inp(dr,dr);
-    r=sqrt(dr2) - sys.particletype[psl->pts[i].ptype].radius-sys.particletype[psl->pts[j].ptype].radius;
+    r=sqrt(dr2) - (sys.particletype[psl->pts[i].ptype].radius+sys.particletype[psl->pts[j].ptype].radius);
     
     return r;
 }
@@ -180,7 +180,7 @@ vector particles_vector(Slice *psl, int i, int j){
         return vector from i pointing to j*/
     vector dr;
 
-    vector_minus(psl->pts[j].r,psl->pts[i].r,dr); /* dr of particle j and k */
+    vector_minus(psl->pts[j].r,psl->pts[i].r,dr); 
     pbc(dr, sys.boxl); 
     
     return dr;  
