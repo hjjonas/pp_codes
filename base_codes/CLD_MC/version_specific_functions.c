@@ -12,8 +12,15 @@ void version_specific_analysis(Slice *psl){
 	// this funciton is located inside terminate_block() at the outerloop in main.c	
 
 
-	// print_StatsLength_to_file(&cluster.size_histogram);
-	print_StatsLength_to_file(&cluster.size_distribution);
+	
+	if(analysis.cluster_analysis==1){
+        // the histogram is the same as size_distribution, but not normalized
+        // print_StatsLength_to_file(&cluster.size_histogram); 
+         print_StatsLength_to_file(&cluster.size_distribution);}
+
+    // set to 1 if you want to print the xy postion of the chain to file
+    //  make sure that analysis.bond_breakage=0 to keep the chain intact
+    if ((analysis.xy_print==1) && (analysis.bond_breakage==0)) print_xy_positions(psl);
 
 }
 
