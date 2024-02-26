@@ -1,7 +1,10 @@
 #include "path.h"
 
 // ***************  all function specific for simulating the chain length distribution ***************
+
+/*------------------LOCAL FUNCTIONS------------------------------------------*/
 void print_xy_positions(Slice *); // for the chains 
+/*---------------------------------------------------------------------------*/
 
 
 
