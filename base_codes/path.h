@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h> 
+#include <stdbool.h>
 #include <time.h>
 
 /*--------------------------------------------------------------------------------------*/
@@ -193,6 +194,7 @@ extern int check_nan(double *);
 extern void update_patch_vector_ipart(Slice *, int );
 extern void update_patch_vectors(Slice *);
 extern void read_coordinates_from_file(Slice *, int );
+extern void rmfiles_filename(char [MAX_FILENAME_LENGTH], char [MAX_FILENAME_LENGTH], int );
 // extern void free_all_memory(void); 
 
 
