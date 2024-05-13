@@ -10,7 +10,7 @@ CF2 =   gcc-10
 FFLAGS = -Wno-deprecated-declarations   
 PARALLEL = -fopenmp
 LIBS =   -lm    -framework OpenGL -framework Glut -framework Cocoa 
-OUT =	test_runfile/runfile.run
+OUT =	runfile/runfile.run
 
 
 opt:	$(SRCS:.c=.o)
