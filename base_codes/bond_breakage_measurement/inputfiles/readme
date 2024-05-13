@@ -1,2 +1,10 @@
 this is an example of a chain (N=10) that is run with bmd and the breakage mechanism/times are measured 
+see for more information the paper https://pubs.rsc.org/en/content/articlepdf/2024/sm/d3sm01255g
+
+in path.inp there are the settings of the simulation
+in conf_x.inp there are (hopefully:P ) independent confiturations. or at least they are somewhat decorrelated chains. 
+there configurations will be read if the bodn breaks in the bmd run
+in particles.inp the particles are defined (see init.c for more information about the format)
+
+the files Scoefficient.inp list the critical casimir coefficeients of the switchfunction
 

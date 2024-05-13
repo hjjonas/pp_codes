@@ -1,0 +1,7 @@
+this is an example of N=2 (a dimer) and the bond confiutreation are measured and histogrammed
+in path.inp there are the settings of the simulation
+in conf_x.inp there are (hopefully:P ) independent confiturations. However, for a dimer that's not too critical
+there configurations will be read if the bodn breaks in the bmd run 
+in particles.inp the particles are defined (see init.c for more information about the format)
+
+the files Scoefficient.inp list the critical casimir coefficeients of the switchfunction

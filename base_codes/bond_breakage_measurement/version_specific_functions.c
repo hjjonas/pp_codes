@@ -582,6 +582,7 @@ void set_transitions_to_zero(int bond_nr){
     breakage_i_tst[bond_nr].last_lambda_12_time=0;
     breakage_i_tst[bond_nr].tau_sim=0; 
 
+    // reset the inverse flux of current breakage event/
     reset_running_statistics( breakage_i_tst[bond_nr].invflux_12);
 
     return;
