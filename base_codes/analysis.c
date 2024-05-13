@@ -28,11 +28,15 @@ void add_bond_information(Slice *psl,int ipart,int jpart,double Erep,double Ebon
     Pts *psi;
     psi=&psl->pts[ipart];
 
+    double Eattr=potential_attractive_energy_sdist(s);
+
     psi->bonds[psi->nbonds]=jpart;
     psi->bond_energy[psi->nbonds]= Erep+Ebond;
     psi->bond_distance[psi->nbonds]=s;
+    psi->bond_switch[psi->nbonds] = Ebond/Eattr;
     psi->nbonds++; 
     // printf("particle %d (has now %d bonds) makes bond iwth %d. \n",ipart, psi->nbonds,jpart);
+
     return;
 }
 
@@ -178,7 +182,7 @@ double particles_distance(Slice *psl, int i, int j){
 }
 
 vector particles_vector(Slice *psl, int i, int j){
-    /* calculates and returns the vector rij(=ri-rj) between two particles. 
+    /* calculates and returns the vector rij(=rj-ri) between two particles. 
         return vector from i pointing to j*/
     vector dr;
 
@@ -186,6 +190,21 @@ vector particles_vector(Slice *psl, int i, int j){
     pbc(dr, sys.boxl); 
     
     return dr;  
+}
+
+double return_Svalue(Slice *psl, int i , int j ){
+    // this return the S=S'(i)S'(j) of a bond beteen particle i and j 
+
+    double r_ss,S,r; 
+    vector rij,u1;
+    double  cositheta,  cosjtheta, cos_ijtheta;
+    
+    particles_distance_length_vector(psl,i,j,&r_ss,&r,&rij);
+    scalar_divide(rij,r,u1);
+    orientation_parameters( psl,  i,  j, u1, &cositheta, &cosjtheta, &cos_ijtheta);
+    S=S_value( cositheta,  cosjtheta, cos_ijtheta, psl->pts[i].ptype, psl->pts[j].ptype);
+
+    return S;
 }
 
 
