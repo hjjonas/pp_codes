@@ -145,6 +145,7 @@ int check_interface_crossing(Slice *psl , int ipart, int jpart){
                 // before you update the tst[bond_nr].times.last_lambda_12_time, calculate the invflux_12
                 double timedif=psl->c_time - breakage_i_tst[bond_nr].last_lambda_12_time;
                 running_statistics(&breakage_i_tst[bond_nr].invflux_12,timedif); 
+                running_statistics(&breakage_all_tst[bond_nr].invflux_12,timedif); 
                      
                 // update the values for next flux measurement
                 breakage_i_tst[bond_nr].N_1++;  
@@ -277,7 +278,7 @@ void bond_broken(Slice *psl){
 
                 // printf(" bond_nr %d\n", bond_nr);
                 // printing flux throught the lambda_12 surface
-                print_to_file("invflux_12", breakage_i_tst[bond_nr].invflux_12.mean, redbond_nr);
+                print_to_file("invflux_12", breakage_all_tst[bond_nr].invflux_12.mean, redbond_nr);
 
                 // save to information form the single bond to all bonds 
 
@@ -407,7 +408,6 @@ void breakage_probabilities(int bond_nr){
 	running_statistics(&breakage_all_tst[bond_nr].P_lambda23_lambda12,P_lambda23_lambda12);
 	running_statistics(&breakage_all_tst[bond_nr].Psep,Psep);
     running_statistics(&breakage_all_tst[bond_nr].Prebind,Prebind);
-    running_statistics(&breakage_all_tst[bond_nr].invflux_12,breakage_i_tst[bond_nr].invflux_12.mean);
 
 	// printing everything to file
     static int print_header=1;
@@ -582,6 +582,7 @@ void set_transitions_to_zero(int bond_nr){
     breakage_i_tst[bond_nr].last_lambda_12_time=0;
     breakage_i_tst[bond_nr].tau_sim=0; 
 
+    reset_running_statistics( breakage_i_tst[bond_nr].invflux_12);
 
     return;
 
