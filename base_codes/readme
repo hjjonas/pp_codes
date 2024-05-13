@@ -1,0 +1,7 @@
+copy the version specific files, e.g. bond_breakage_measurement/version_specific_functions.*, to base_source 
+run the command
+make opt3
+on the commandline
+
+and an executable will be made in the folder runfile/runfile.run 
+also in the folder bond_breakage_measurement/inputfiles you can find an example of a run
