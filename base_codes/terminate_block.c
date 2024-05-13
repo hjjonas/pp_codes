@@ -34,7 +34,6 @@ void terminate_block(Slice *psl) {
     printf("         the total energy is %lf\n", psl->energy);
    
     // print to file
-    
     printenergy(psl, ""); 
     conf_output(psl);   
 
@@ -350,7 +349,6 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
         // printf("ADDING NEW LINE\n");
         strcat(value, "\n");
     } 
-
     // print to file
     if (fprintf(fp, "%s", value) < 0) {
         printf("Error: Failed to write data to file '%s'.\n", filename_full);
