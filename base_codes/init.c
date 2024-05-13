@@ -4,7 +4,6 @@
 /*------------------LOCAL FUNCTIONS------------------------------------*/
 void check_input_with_MAXDEFS(void);
 vector check_read_unitvec(vector );
-double find_forcecutoff_distance(void );
 double find_minimum_of_potential(void);
 double find_trunc_of_Saccent_1(int);
 double find_zcut(double );
@@ -98,6 +97,8 @@ void read_input(Slice *psl) {
         {"nchains", &init_conf.nchains, 'd'},
         {"chaingap", &init_conf.chaingap, 'f'},
         //      analysis variables 
+        {"measure_bond_configurations", &langevin.measure_bond_configurations, 'd'},
+        {"bond_breakage_analysis", &langevin.bond_breakage_analysis, 'd'},
         {"bond_breakage", &analysis.bond_breakage, 'd'},
         {"bond_op", &analysis.bond_op, 'd'},
         {"print_trajectory", &analysis.print_trajectory, 'd'},
@@ -188,7 +189,7 @@ void init_model(Slice *psl) {
     */
     double bond_treshold_fraction=0.001;
 
-    sys.sigma=3.2e-6;//micron
+    sys.sigma=3.2e-6; //meter 
     if (sys.boxl.y<1e-5 & sys.boxl.x>1e-5){
         //its a cubic box
         sys.boxl.y = sys.boxl.z = sys.boxl.x;
@@ -204,6 +205,7 @@ void init_model(Slice *psl) {
     psl->temp = 1.0/psl->beta;
     cluster.update=1; // always start with a cluster update if dong MC + clusterupdate 
     pot.rcutoff=pot.s_cutoff+1.;
+    if ((pot.s_cutoff<1e-3)|| (pot.s_cutoff>0.5) ) error("pot.s_cutoff<1e-3 is too small or too big ?0.5, check your input file");
 
     /*setting up the parameters of the potentials, based on wetting , surface charge*/
     setup_criticalCasimir_potential_parameters(); // casimir potential 
@@ -212,10 +214,7 @@ void init_model(Slice *psl) {
     printf("\nLooking for the minimum of the potential...");
     pot.s_min= find_minimum_of_potential();
     pot.s_overlap = find_overlap_distance(); // do this after finding s_min
-
-    // NOTE: only used in BMD!! MOVE THIS FUNCTION
-    // pot.s_forcecut = find_forcecutoff_distance(); 
-
+ 
     pot.bond_cutoffE=-0.1; // this defines the bond based on energy
 
     //first read in the particle, specifies particle types etc
@@ -232,7 +231,6 @@ void init_model(Slice *psl) {
     plotpotential();
     printf("done\n");
 
-
     /*Calculate the gravitational force fg and correction b_zc*/
     if(sys.gravity>0){
         printf("\nSetting GRAVITY PARAMETERS...\n");
@@ -241,13 +239,7 @@ void init_model(Slice *psl) {
         double coverage=psl->nparts/(sys.boxl.x*sys.boxl.y);
         printf("         the density of the quasi-2D system %.4lf [N/sigma^2] = %.4lf area percentage \n",coverage,coverage*(PI/4.));
     }
-    
-    /*rcut^2*/
-    if (pot.s_cutoff>0.5){
-        error("pot.s_cutoff too bit, make it bigger than 0.5");
-    }
-    
-   
+
     /*does sim_type specific definitions*/
     init_simtype(psl);
     check_input_with_MAXDEFS();
@@ -330,36 +322,7 @@ double find_overlap_distance(void ){
     return s;
 
 }
-double find_forcecutoff_distance(void ){
-    /*looks for the value of s (surface-surface-distance) at which you the force is large and may causes the particles to explode
-    */ 
 
-    double Delta_E=-pot.E_smin/sys.beta,s,Uattr,Urep,Utot,dE ;
-    int x=100000;       
-    gprint(pot.E_smin);
-
-
-    for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
-        s=(double)r/(double)x *pot.s_cutoff;
-        
-        Urep = potential_repulsive_energy_sdist(s);
-        Uattr = potential_attractive_energy_sdist(s);
-        Utot = Urep+Uattr;
-
-        dE=Utot-pot.E_smin; // dE away from the minimum
-        if (fabs(Delta_E-dE)<1e-1){
-            printf(" at distance s=%3.20f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
-            printf(" at distance s=%3.20f Frep==%3.2f +  Fattr=%3.2f  \n",s,bond_repulsive_force(s),bond_attractive_force(s));
-
-            gprint(Delta_E);
-            gprint(dE);
-            return s;
-        }
-    }
-    // if there is no such distance, just take s_overlap
-    return pot.s_overlap;
-
-}
 
 void setup_positions_sites(Slice *psl) {
 
@@ -733,6 +696,13 @@ void init_simtype(Slice *psl){
         }   
     }
 
+    if ((langevin.measure_bond_configurations) || (langevin.bond_breakage_analysis)){
+        special_init(psl);
+    }
+
+    
+
+
     return;
 }
 void restart_read_time(Slice *psl){
@@ -763,8 +733,7 @@ void restart_read_time(Slice *psl){
         printf("  restart time = %lf [s]\n", psl->c_time);    // captured: [472977827]
     }
     else{
-        psl->c_time=0.;
-        printf(" >>>>>>>WARNING:  trajectory.xyz cannot be read , so restart time = %lf [s]<<<<<\n", psl->c_time); 
+        error("  in restart_read_time:  trajectory.xyz cannot be read??\n"); 
 
     }
 
