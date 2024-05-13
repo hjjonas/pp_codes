@@ -50,8 +50,7 @@ int main(int argc, char **argv) {
                     break;
             }
             // perform version specific analysis here;
-            // innerloop_analysis(pls);
-
+            innerloop_analysis(&slice[0]);
         }
 
         // Terminate block; printing / measuring 
@@ -174,6 +173,8 @@ void mc_warmup(Slice *psl){
  // Use mc_warmup to decorrelate from the input structure; perform MC moves without bond breakages
     printf("*********  mc_warmup is on:  equilibrating with MC ********\n");
 
+    psl->energy=total_energy(psl);
+
     // Save old settings to restore later
     int old_setting=analysis.bond_breakage; // why was this a double
     double old_beta=psl->beta;
@@ -216,6 +217,7 @@ void mc_warmup(Slice *psl){
     sys.cluster_MC=old_clustermc;
     sys.nearest_neighbor=nn;
     analysis.xy_print=xyprint;
+
     // Update nearest neighbor list if necessary
     if (sys.nearest_neighbor)  update_nnlist(psl);
 
@@ -329,7 +331,61 @@ void update_patch_vectors(Slice *psl){
 } 
 
 
+void restart_conf(Slice *psl){
 
+    if (psl->nparts==2){
+        memcpy(psl, start_slice, sizeof(Slice ));
+        psl->c_time=0.;
+        return;
+    }
+
+    static int teller=0;
+
+    int ipart, isite,npart,nsites;
+    vector boxl;
+    FILE *fp;
+
+    char filename[200]; 
+    snprintf( filename, sizeof( filename ), "conf_%d.inp",teller);
+    
+    if((fp=fopen(filename,"r"))==NULL) {;
+        // if you cant open the file, 
+        // reset the teller to 0 and try again
+        teller=0; 
+        snprintf( filename, sizeof( filename ), "conf_%d.inp",teller);    
+    }
+
+    if((fp=fopen(filename,"r"))==NULL) {
+        printf("%s \n",filename);
+        error("Warning: can not open conf.inp\n");   
+    }
+   
+    printf(">>> restarting from conf in file: %s<<<\n", filename);
+    fscanf(fp,"%d %lf %lf %lf\n", &npart, &boxl.x, &boxl.y, &boxl.z);
+    for(ipart=0; ipart<npart; ipart++) {
+        fscanf(fp,"%lf %lf %lf ", &psl->pts[ipart].r.x, &psl->pts[ipart].r.y, &psl->pts[ipart].r.z);
+        fscanf(fp,"%lf %lf %lf %lf\n", &psl->pts[ipart].q.q0, &psl->pts[ipart].q.q1, &psl->pts[ipart].q.q2, &psl->pts[ipart].q.q3);
+
+        /*make sure the quaternions are unit, it could be a liiiiilte bit off due to the print accuracy and it will  lead to |p|!=1 */
+        psl->pts[ipart].q=  normalize_quat(psl->pts[ipart].q);
+        update_patch_vector_ipart(psl,ipart); 
+    }
+    
+    fclose(fp);
+
+    if(npart!=psl->nparts) {
+        error("Error: number of particles in system not same as in conf.inp\n");
+        
+    }
+    if((boxl.x!=sys.boxl.x) | (boxl.y!=sys.boxl.y) | (boxl.z!=sys.boxl.z)) {
+        vprint(boxl);
+        vprint(sys.boxl);
+        error("Error: boxlength in system not same as in conf.inp\n");
+    }
+    teller +=1;
+    psl->c_time=0.;
+    return;
+}
 
 
 
