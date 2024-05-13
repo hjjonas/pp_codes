@@ -207,10 +207,6 @@ double return_Svalue(Slice *psl, int i , int j ){
     return S;
 }
 
-
-
-
-
 void check_maxbonds(Slice *psl){
     /*checks if any particle exeeds the maximum number of bonds (more than one per site)*/
     int ipart;

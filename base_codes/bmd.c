@@ -654,9 +654,6 @@ void setup_BMD(Slice *psl){
 
     }
 
-    
-    
-
     /* create the neighbor list here;*/
     if(sys.nearest_neighbor==1){
         printf("   step 1) Setting up the neighbor list\n");

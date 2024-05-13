@@ -171,12 +171,12 @@ void read_coordinates_from_file(Slice *current, int block_number){
 
 void mc_warmup(Slice *psl){
  // Use mc_warmup to decorrelate from the input structure; perform MC moves without bond breakages
-    printf("*********  mc_warmup is on:  equilibrating with MC ********\n");
+    // printf("*********  mc_warmup is on:  equilibrating with MC ********\n");
 
     psl->energy=total_energy(psl);
 
     // Save old settings to restore later
-    int old_setting=analysis.bond_breakage; // why was this a double
+    int old_setting=analysis.bond_breakage;  
     double old_beta=psl->beta;
     int old_clustermc=sys.cluster_MC;
     int nn=sys.nearest_neighbor;
@@ -189,7 +189,7 @@ void mc_warmup(Slice *psl){
     sys.cluster_MC=0;
     analysis.xy_print=0;
 
-    printf("There are %d bonds in the system, keep them fixed as analysis.bond_breakage= %d.\n",psl->nbonds,analysis.bond_breakage);
+    // printf("There are %d bonds in the system, keep them fixed as analysis.bond_breakage= %d.\n",psl->nbonds,analysis.bond_breakage);
 
     // Perform MC warmup cycles
     for(int jcycle=0; jcycle<init_conf.mc_warmup; jcycle++) {

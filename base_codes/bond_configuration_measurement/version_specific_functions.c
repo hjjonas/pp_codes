@@ -53,6 +53,7 @@ void every_timestep_analysis(Slice *psl){
 
         if (psl->nbonds!=start_slice->nbonds ){
             // new configuration, and recalculate totalenergy
+            printf(" a bond has broken, read a new configuration, and recalculate totalenergy\n");
             restart_conf(psl);
 
             mc_warmup(psl);
@@ -66,7 +67,10 @@ void every_timestep_analysis(Slice *psl){
                 error("not enough bonds in conf.inp file.  shouldn't be possible");
             }
         }
-        histogramming_bond_configurations(psl);
+        else{
+            histogramming_bond_configurations(psl);
+        }
+        
     }
 }
 
