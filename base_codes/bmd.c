@@ -11,6 +11,7 @@ void calculate_forces_neighborlist(Slice *);
 void gravitational_force_ipart(Slice *, int );
 void derivative_check(Slice *);
 void propagate_bd(Slice *) ;
+double find_forcecutoff_distance(void );
 /*---------------------------------------------------------------------------*/
 
 
@@ -24,13 +25,7 @@ void bmdcycle(Slice *psl) {
         propagate_bd(psl);        
     }
 
-    // If bond tracking is enabled, perform bond tracking for the current slice
-    // if(analysis.bond_tracking==1){
-    //     bond_tracking(psl);
-        // printBondTimeInfoArray(bondtimeinfoarray )
-    // }
-    if (analysis.print_trajectory) printing_trajectory(&slice[0]); // try to do it every 1 second through langevin.ninter*timestep
-
+    
 }
 
 void propagate_bd(Slice *psl)  {
@@ -47,6 +42,7 @@ void propagate_bd(Slice *psl)  {
             update_nnlist(psl);
             update =0;
         }
+        every_timestep_analysis(psl);
     }
 
     // cumulative time 
@@ -353,8 +349,8 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
         // repulsive radial force
         fmag=fabs(bond_repulsive_force(s));/*F=-dVrep/ds >= 0*/
 
+        // note that rij points from i to j
         scalar_divide(rij,r,rnorm); 
-        // vprint(rnorm);
 
         // rij and rnorm point from i to j
         /*add the abs repulsive force (=a positive number) negatively to i and positively to j (as rij points toward from i to j)*/
@@ -362,8 +358,6 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
         scalar_plustimes(rnorm,fmag,psj->f);
         /*repulsive radial force done*/
     
-           
-
         if ((sys.particletype[typei].nsites==3) && (sys.particletype[typej].nsites==3)){
             S=0; // no interaction between two tripatch particles
             //WARNING THIS IS SPECIFIC FOR ACTIVE NETWORK
@@ -379,7 +373,7 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
         
         if (S>0){
             double Umag,fmagP,fmagrinv,dSdcostheta;
-            vector rcrosspi,rcrosspj,piperpr,pjperpr;
+            vector pxr_i,pxr_j,piperpr,pjperpr;
 
             // /* attractive energy and force of the patches wihtout angular correction */
             Umag = fabs(potential_attractive_energy_sdist(s)) ;  // Umag is a negative number; do absolute value
@@ -391,25 +385,24 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
             /*the effective attractive force(fmagP). The particle attract, so mintimes on i and plustimes on j */
 
             //the radial attractive force  along rnorm
-            scalar_plustimes(rnorm,fmagP,psi->f);
-            scalar_mintimes(rnorm,fmagP,psj->f);
+            scalar_plustimes(rnorm,fmagP,psi->f); // plustimes; verplaats in de richting van j 
+            scalar_mintimes(rnorm,fmagP,psj->f);  // mintimes; verplaats in de richting van i
 
             // printf("patch radial interaction \n");
-            
-            /*the torque = p x rnorm , so here rcrosspi = -torque (due to direction of rnorm)*/
-            scalar_times(rnorm,-1.,min_rnorm); //make here -rnorm, because you need to flip the rnorm vector, to find p1 (and patch angle) correctly.
+            //make here -rnorm, because you need to flip the rnorm vector, to find p2 (and patch angle) correctly.
+            scalar_times(rnorm,-1.,min_rnorm); 
             p1= find_directing_patchvector(psl, ipart,  rnorm);
             p2= find_directing_patchvector(psl, jpart,  min_rnorm);
 
             // vector cross is right hand rule: wijsv. = a , middel v. = b, duim: a x b, 
-            vector_cross(rnorm,p1,rcrosspi);
-            vector_cross(min_rnorm,p2,rcrosspj);
+            /*the torque_hat = p_hat x rnorm , both pxr are in direction of torque*/
+            vector_cross(p1,rnorm,pxr_i);
+            vector_cross(p2,min_rnorm,pxr_j);
 
             /*the direction of the force that bring patch back to center,ie. aligning with rnorm*/
-            /*rnorm points form i to j*/
-            /*pi is projected onto pi*/
-            vector_cross(rnorm,rcrosspi,piperpr);
-            vector_cross(min_rnorm,rcrosspj,pjperpr)
+            /*piperpr is projection of  pi*/
+            vector_cross(rnorm,pxr_i,piperpr);
+            vector_cross(min_rnorm,pxr_j,pjperpr)
 
             //"sliding" radial force, the one perperdicular to rnorm see eqn 4 of the Allen paper
             //CALCULATE DEL U / DEL COSTHETA_i derivative to i
@@ -422,20 +415,20 @@ void single_bond_force(Slice *psl, int ipart, int jpart){
             scalar_mintimes(piperpr,fmagrinv,psi->f);
             scalar_plustimes(piperpr,fmagrinv,psj->f);
 
-            /* rcrosspi is in the directoin of the torque and fmag is |-F|, therefore mintimes */
-            // TORQUE on particle i
+            /* pxr is in the direction of the torque  */
             // see after eq. 4 of Allen Paper for torque expression
-            scalar_mintimes(rcrosspi,fmag,psi->t);
+            scalar_plustimes(pxr_i,fmag,psi->t);
             
             // DEL U / DEL COSTHETA_j derivative to j
             dSdcostheta  = dS_dcostheta(psl,cosjtheta,jpart,cositheta, ipart);
             fmag = fabs(Umag*dSdcostheta);
             fmagrinv=fmag*rinv;
-            scalar_mintimes(pjperpr,fmagrinv,psi->f);   //pjperpr  mintimes on i
-            scalar_plustimes(pjperpr,fmagrinv,psj->f); // pjperpr plustimes on j 
+            scalar_plustimes(pjperpr,fmagrinv,psi->f);    
+            scalar_mintimes(pjperpr,fmagrinv,psj->f);   
 
             // TORQUE on particle j
-            scalar_mintimes(rcrosspj,fmag,psj->t);
+            /* pxr is in the direction of the torqu, so plustimes  */
+            scalar_plustimes(pxr_j,fmag,psj->t);
         }
 
     }
@@ -605,6 +598,12 @@ void setup_BMD(Slice *psl){
     printf("\nChecking the derivatives/forces...");
     derivative_check(psl);
     printf("done\n");
+
+    // find the cutoff for extremely large force ,
+    // below it, use a linear function, instead of exponential
+    // this is very unlikely so dynamics/statistics will  not be influenced by this alteration
+    pot.s_forcecut = find_forcecutoff_distance();
+
    
    /*langevin/brownian md parameters*/
     printf("\nDefining the langevin timestep and mobility parameters... ");
@@ -655,9 +654,10 @@ void setup_BMD(Slice *psl){
 
     }
 
-    printf("done\n");
+    
+    
 
-        /* create the neighbor list here;*/
+    /* create the neighbor list here;*/
     if(sys.nearest_neighbor==1){
         printf("   step 1) Setting up the neighbor list\n");
         setup_nnlist();
@@ -665,7 +665,39 @@ void setup_BMD(Slice *psl){
         update_nnlist(psl);
     }
 
+    printf("   ....  setup of BMD is done\n");
+
     return;
+}
+double find_forcecutoff_distance(void ){
+    /*looks for the value of s (surface-surface-distance) at which you the force is large and may causes the particles to explode
+    */ 
+
+    double Delta_E=-pot.E_smin/sys.beta,s,Uattr,Urep,Utot,dE ;
+    int x=100000;       
+    gprint(pot.E_smin);
+
+
+    for (int r=x/-5;r<x +1;r++){ //  start at negative values for LJ
+        s=(double)r/(double)x *pot.s_cutoff;
+        
+        Urep = potential_repulsive_energy_sdist(s);
+        Uattr = potential_attractive_energy_sdist(s);
+        Utot = Urep+Uattr;
+
+        dE=Utot-pot.E_smin; // dE away from the minimum
+        if (fabs(Delta_E-dE)<1e-1){
+            printf(" at distance s=%3.20f Urep==%3.2f +  Uattr=%3.2f  =  %3.2f\n",s,Urep,Uattr,Utot);
+            printf(" at distance s=%3.20f Frep==%3.2f +  Fattr=%3.2f  \n",s,bond_repulsive_force(s),bond_attractive_force(s));
+
+            gprint(Delta_E);
+            gprint(dE);
+            return s;
+        }
+    }
+    // if there is no such distance, just take s_overlap
+    return pot.s_overlap;
+
 }
 
 void derivative_check(Slice *psl){
