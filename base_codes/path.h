@@ -86,7 +86,8 @@ typedef struct particle_type {
                   // k_bo;                 // number of bond order properties, not used? 
 
     double        bond_energy[MAXBONDS],    // the bond energy of the ith bond
-                  bond_distance[MAXBONDS];  // the r_ss of the ith bond
+                  bond_distance[MAXBONDS],  // the r_ss of the ith bond
+                  bond_switch[MAXBONDS];    // the S of the ith bond
 
     // specific version of active_network, add them later to versions of the code
     // BondProperty  bond_op[MAXBONDS];
@@ -200,6 +201,7 @@ extern void update_patch_vectors(Slice *);
 extern void read_coordinates_from_file(Slice *, int );
 extern void rmfiles_filename(char [MAX_FILENAME_LENGTH], char [MAX_FILENAME_LENGTH], int );
 // extern void free_all_memory(void); 
+extern void restart_conf(Slice *);
 
 
 
