@@ -1,0 +1,43 @@
+SIMULATION
+sim_type 1
+mc_warmup 0
+start_type 2
+particle_setup 1 
+ncycle1 5000000 
+ncycle2 100
+
+GRAPHICS
+graphics 0
+
+BMD
+nearest_neighbor 0
+mobilityT 0.003417969
+mobilityR .05
+ninter 200
+timestep  0.000005000
+
+
+ANALYSIS
+measure_bond_configurations 1
+empty_files 1
+
+GRAVITY
+gravity 0 
+epsilongravLJ 500
+
+SWITCH_FUNCTION
+S_fixed 0 0
+switch_method 1  // choose how S is defined if 1->S=SiSj
+s_accent 1 1
+
+critical casimir Potential
+dT .12
+r_wetting 0.462
+surface_charge -0.090
+
+System
+npart 2
+s_cutoff 0.1
+beta 1.0
+boxl 20.00
+boxly 20.00
