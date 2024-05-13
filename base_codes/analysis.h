@@ -87,7 +87,7 @@ typedef struct analysis_type {
 
 
 /*------------------GLOBAL FUNCTIONS-----------------------------------------*/
-extern void linking_all_cluster(Slice *psl);
+extern void linking_all_cluster(Slice *);
 extern void  add_bond_information(Slice *,int ,int ,double ,double ,double );
 extern int bond_check(Slice *, int , int );
 extern double particles_distance(Slice *, int , int );
@@ -95,15 +95,15 @@ extern vector particles_vector(Slice *, int , int );
 extern void clustersize_freq_update(Slice *);
 extern void check_maxbonds(Slice *);
 extern int cluster_analysis(Slice *);
-extern void clustersize_identification(Slice *psl);
+extern void clustersize_identification(Slice *);
 extern void linked_structure_icluster(Slice *, int , int );
 extern double running_variance2(double, double, double, double, long);
 extern double running_mean(double, double, long);
 extern void reset_running_statistics(Statistics *);
 extern void running_statistics(Statistics *, double );
-extern int particle_in_wall(Slice *psl, int ipart);
+extern int particle_in_wall(Slice *, int );
 extern void particles_distance_length_vector(Slice *, int , int  ,double *, double *,vector *);
-
+extern double return_Svalue(Slice *, int  , int  );
 /*---------------------------------------------------------------------------*/
 
 /*------------------GLOBAL STRUCTURES----------------------------------------*/
