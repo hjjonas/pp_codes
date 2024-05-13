@@ -14,6 +14,7 @@ extern void restart_read_time(Slice *);
 extern void plotpotential(void);
 extern void check_random(void);
 
+
 /*---------------------------------------------------------------------------*/
 /*------------------STRUCTURE DEFINITIONS------------------------------------*/
 typedef struct init_type {
