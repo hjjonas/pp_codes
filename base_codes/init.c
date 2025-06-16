@@ -19,7 +19,6 @@ void setup_positions_sites(Slice *);
 void read_particletypes(Slice *);
 void conf_input(Slice *);
 vector check_read_unitvec(vector );
-void read_statistics_file(StatsLength *);
 /*---------------------------------------------------------------------------*/
 
 
@@ -676,32 +675,13 @@ void init_simtype(Slice *psl){
             break;
     }
 
+    allocate_memory(psl);
 
-    if(cluster.analysis==1){
-        // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
-        printf("\nThe code performs cluster analysis \n");
-        printf("      the total energy is %lf\n", total_energy(psl));
-        printf("      now cluster analysis\n");
-        psl->nclusters = cluster_analysis(psl); 
-        clustersize_identification(psl);
 
-        printf("      Initial # bonds is %d \n", psl->nbonds);
-     
-        strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
-        strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
-
-        if(init_conf.restart){ // read data from files if you want a restart
-            read_statistics_file(&cluster.size_histogram);
-            read_statistics_file(&cluster.size_distribution);          
-        }   
-    }
-
-    if ((langevin.measure_bond_configurations) || (langevin.bond_breakage_analysis)){
-        special_init(psl);
-    }
-
-    
-
+    special_init(psl);
+    // if ((langevin.measure_bond_configurations) || (langevin.bond_breakage_analysis)){
+    //     special_init(psl);
+    // }
 
     return;
 }
@@ -1092,32 +1072,6 @@ vector check_read_unitvec(vector source){
 
     return source_new;
 }
-
-void read_statistics_file(StatsLength *stats_name){
-    FILE *file;
-    char *pt,line[NPART], filename[100];
-    int i=0,j=0, dummy;
-
-    memcpy(filename,stats_name->filename,sizeof(filename));
-    // printf("filname %s\n", filename);
-    if ((file = fopen(filename,"r"))==NULL){
-        printf("%s can't be opened,  statistics are zero\n", filename);
-    }
-    else{
-        printf("reading %s ...", filename);
-
-        while(fgets(line,1000, file) != NULL) {
-            sscanf(line,"%d %lf %lf %ld", &dummy, &stats_name->bin[i].mean, &stats_name->bin[i].variance2,&stats_name->bin[i].n);
-            i++;
-        }
-        printf("done\n");
-    }
-   
-    return;
-}
-
-
-
 
 void check_random(void){
     // this performs some random numbers and prints the histrogram of it to a file, you can take a look at it if 

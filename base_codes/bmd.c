@@ -16,7 +16,7 @@ double find_forcecutoff_distance(void );
 
 
 void bmdcycle(Slice *psl) {
-    /*sys.sim_type==BMD_ALGORITHM Brownina Dynamics*/
+    /*sys.sim_type==BMD_ALGORITHM Brownian Dynamics*/
     int istep, update=0, ipart;
     double dr2;
 
@@ -42,7 +42,7 @@ void propagate_bd(Slice *psl)  {
             update_nnlist(psl);
             update =0;
         }
-        every_timestep_analysis(psl);
+        // every_timestep_analysis(psl);
     }
 
     // cumulative time 

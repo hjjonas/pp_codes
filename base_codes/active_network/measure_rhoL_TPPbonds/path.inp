@@ -1,0 +1,55 @@
+SIMULATION
+sim_type 3
+start_type 1
+particle_setup 1 
+directorypath .
+read_path 5
+ncycle1 50000 
+ncycle2 1 10 
+
+GRAPHICS
+graphics 0
+snapshot SNAPSHOT
+
+MC
+cluster_MC 1
+bond_breakage 1
+
+BMD
+nearest_neighbor 0
+mobilityT 0.003417969
+mobilityR .05
+ninter 2000
+timestep 0.000005
+
+
+ANALYSIS
+rdfanalysis 0
+cluster_analysis 1
+s_histogram 0
+adjacency 0
+empty_files 1
+xy_print 0
+print_trajectory 0
+bond_tracking 0 
+
+GRAVITY
+gravity 1
+epsilongravLJ 500
+
+SWITCH_FUNCTION
+switch_method 1  // choose how S is defined if 1->S=SiSj
+S_fixed 0 0
+s_accent 1 1
+
+Simons_Potential
+dT .16
+r_wetting 0.462
+surface_charge -0.090
+
+System
+npart 500 
+s_cutoff 0.1
+beta 1.0
+boxl 36.18
+boxly 36.18

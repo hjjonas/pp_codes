@@ -10,11 +10,10 @@ vector       nulvec;
 int main(int argc, char **argv) {
 
     // Declare variables
-    // int icycle, jcycle;     // Loop counters
-    // double energy;          // Energy variable
-    // FILE *emptyfile, *rdffile;  // File pointers
     time_t t0 = time(0);    // Time at start of program
     time_t block2_0=t0 ;
+
+
     // Call function to set up simulation parameters
     setup_simulation();
     
@@ -53,10 +52,10 @@ int main(int argc, char **argv) {
             innerloop_analysis(&slice[0]);
         }
 
-        // Terminate block; printing / measuring 
+        // Terminate block / outer loop analysis
         terminate_block(&slice[0]);
 
-        // Print time for this block
+        // track how long this block takes
         time_t block2_1 = time(0);
         
         double datetime_diff2 = difftime(block2_1, block2_0);
@@ -74,7 +73,7 @@ int main(int argc, char **argv) {
     printf("\n\nTotal time [min] %lf\n", datetime_diff/60.); 
 
     // End program
-    // free_all_memory();
+    free_all_memory();
     return 0;
 }
 
@@ -272,6 +271,7 @@ void error(char *msg){
   printf("error: %s\n",msg);
 
     //free memory 
+free_all_memory();
   exit(0);
 }
 

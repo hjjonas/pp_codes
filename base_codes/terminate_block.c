@@ -141,17 +141,11 @@ void finalstat(Slice *psl) {
         }
     }
     
-    
-    //  print RDF to file if rdfanalysis is turned on
-    // if(sys.rdfanalysis==1){
-    //     printrdf();
-    // }
-    
     return;
 }
 
 void print_slice_information(Slice *psl){
-    // printing slice information
+    // printing slice information, often used in debugging 
     int m;
     double ipartenergy;
     printf("\n     >>>>> Slice Information <<<<<<\n");
@@ -174,7 +168,7 @@ void print_slice_information(Slice *psl){
 
         ipartenergy=particle_energy(psl, n, 0);
         gprint(ipartenergy);
-        if (ipartenergy>1000) printf("*****WARNING BIG ENERGY****\n");
+        if (ipartenergy>1000) printf("*****WARNING BIIIIIG PARTICLE ENERGY****\n");
 
         for(m=0; m<sys.particletype[psl->pts[n].ptype].nsites;m++){
             printf("                 patchvector          ( %10.5lf  %10.5lf  %10.5lf)     \n",psl->pts[n].patchvector[m].x,psl->pts[n].patchvector[m].y,psl->pts[n].patchvector[m].z);
@@ -216,6 +210,9 @@ void printenergy(Slice *psl, char ext[]){
         case MC_ALGORITHM:
             snprintf( value, sizeof( value ), "%8.12lf", psl->energy );
             break;
+        case READ_TRAJECTORY:
+            snprintf( value, sizeof( value ), "%8.12lf", psl->energy );
+            break;
         case BMD_ALGORITHM:
             snprintf( value, sizeof( value ), "%8.12lf %8.12lf", psl->c_time, psl->energy );
             break;
@@ -232,19 +229,17 @@ void printing_trajectory(Slice *psl){
 
     Pts *psi;
 
-    /*saving the coordinates of the X particles in a struct. if bond has broken then print the 1e6 datapoints to a file*/
+    /* print the snapshot in slice to file "trajectory.xyz" */
     
     FILE *coordinatesfile;
-    
     double ctime,x,y,z,q0,q1,q2,q3;
     
-
     if((coordinatesfile=fopen("trajectory.xyz","a"))==NULL) {
             printf("Error with opening \"trajectory.xyz\" file");
             error("stop");
     }
     else{
-        ctime=psl->c_time;
+        ctime=psl->c_time; // the timestamp
         
         for (int ipart=0;ipart<sys.npart;ipart++){
             psi=&psl->pts[ipart];
@@ -262,6 +257,7 @@ void printing_trajectory(Slice *psl){
             q0,q1,q2,q3 );  
 
         }
+        // separate the snapshots by an empty line
         // fprintf(coordinatesfile, "\n");
     }
 
@@ -327,6 +323,12 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
 
     // checks if given strings are not too long.
     if ((strlen(filename) >= MAX_FILENAME_LENGTH) || (strlen(ext) >= MAX_EXT_LENGTH) || (strlen(value) >= MAX_VALUE_LENGTH) || (strlen(value) == 0)){
+        printf("Error: filename length = %lu. \n", strlen(filename));
+        printf("Error: ext lenth       =  %lu . \n", strlen(ext));
+        printf("Error: value length    =   %lu. \n", strlen(value));
+        printf("value  =   %s. \n", value);
+        printf("filename  =   %s. \n", filename);
+
         error(" In write_append_to_file():  filename, ext, or value exceeds maximum length");
     }
 
@@ -361,6 +363,7 @@ void write_append_to_file(char filename[],  char ext[], char writetype, char val
 }
 
 bool ends_with_newline(const char *str) {
+    // check if lines end with \n
     int len = strlen(str);
     // dprint(len >= 2);
     // dprint(str[len - 2] == '\\');

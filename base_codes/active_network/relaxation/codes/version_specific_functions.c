@@ -1,6 +1,6 @@
 #include "path.h"
 
-// ***************  all function specific for simulating the chain length distribution ***************
+// ***************  all function specific for simulating the cluster size distribution or chain configurations ***************
 
 /*------------------LOCAL FUNCTIONS------------------------------------------*/
 void print_xy_positions(Slice *); // for the chains 
@@ -11,16 +11,15 @@ void print_xy_positions(Slice *); // for the chains
 void version_specific_analysis(Slice *psl){
 	// this funciton is located inside terminate_block() at the outerloop in main.c	
 
-
+    clustersize_freq_update(psl);
 	
 	if(cluster.analysis==1){
         // the histogram is the same as size_distribution, but not normalized
-        // print_StatsLength_to_file(&cluster.size_histogram); 
-         print_StatsLength_to_file(&cluster.size_distribution);}
+        print_StatsLength_to_file(&cluster.size_distribution);
+    }
 
-    // set to 1 if you want to print the xy postion of the chain to file
-    //  make sure that analysis.bond_breakage=0 to keep the chain intact
-    if ((analysis.xy_print==1) && (analysis.bond_breakage==0)) print_xy_positions(psl);
+    if (analysis.print_trajectory) printing_trajectory(psl);
+
 
 }
 
@@ -47,38 +46,6 @@ void clustersize_freq_update(Slice *psl){
     } 
 
     return; 
-}
-
-void allocate_memory(Slice *psl){
-	// allocate versions specific memory
-	// maybe put this in init?
-
-	// dynamically allocate memory for cluster.size_distribution.bin 
-	cluster.size_histogram.bin = (Statistics *)calloc(psl->nparts, sizeof(Statistics));
-	cluster.size_distribution.bin = (Statistics *)calloc(psl->nparts, sizeof(Statistics));
-
-	cluster.size_histogram.length=psl->nparts;
-	cluster.size_distribution.length=psl->nparts;
-
-
-	return;
-}
-
-void free_all_memory(void){
-	// free the memory you allocated in allocate_memory, or other parts in the code
-
-	free(cluster.size_histogram.bin);
-	free(cluster.size_distribution.bin);
-
-	free(&copyslice[0]);
-	free(&start_slice[0]);
-	free(&slice[0]);
-
-	if (sys.sim_type==MC_ALGORITHM){
-        free(&psl_old[0]);
-    }
-
-	return;
 }
 
 
@@ -192,3 +159,55 @@ void print_xy_positions(Slice *psl){
 
 }
 
+
+
+/*_________________________MEMORY ALLOCATION AND FREEING________________*/
+
+void special_init(Slice *psl){
+    // for cluster analysis 
+    if(cluster.analysis==1){
+        // chain. = (Statistics *)calloc(NPART,sizeof(Statistics));
+        printf("\nThe code performs cluster analysis \n");
+        printf("      the total energy is %lf\n", total_energy(psl));
+        printf("      now cluster analysis\n");
+        psl->nclusters = cluster_analysis(psl); 
+        clustersize_identification(psl);
+
+        printf("      Initial # bonds is %d \n", psl->nbonds);
+     
+        strcpy(cluster.size_histogram.filename,"clustersize_histogram.out");
+        strcpy(cluster.size_distribution.filename,"clustersize_distribution.out");
+ 
+    }
+    
+}
+void allocate_memory(Slice *psl){
+	// allocate versions specific memory for cluster anallysys 
+
+	// dynamically allocate memory for cluster.size_distribution.bin 
+	cluster.size_histogram.bin = (Statistics *)calloc(psl->nparts, sizeof(Statistics));
+	cluster.size_distribution.bin = (Statistics *)calloc(psl->nparts, sizeof(Statistics));
+
+	cluster.size_histogram.length=psl->nparts;
+	cluster.size_distribution.length=psl->nparts;
+
+
+	return;
+}
+
+void free_all_memory(void){
+	// free the memory you allocated in allocate_memory, or other parts in the code
+
+	free(cluster.size_histogram.bin);
+	free(cluster.size_distribution.bin);
+
+	free(&copyslice[0]);
+	free(&start_slice[0]);
+	free(&slice[0]);
+
+	if (sys.sim_type==MC_ALGORITHM){
+        free(&cp_slice[0]);
+    }
+
+	return;
+}

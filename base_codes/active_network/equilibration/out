@@ -1,0 +1,116 @@
+Setting up the system
+
+initializing the random numbers
+Random_urandom() 364095673 
+the time(0l) is 1750098139
+
+Allocating memory for the slice
+
+Reading the input
+
+Reading input from path.inp
+Reading simulation parameters
+Reading MC parameters
+Reading BMD parameters
+Reading Analysis parameters
+Reading gravity parameters
+Reading switch function parameters
+Done reading path.inp
+
+Init the model
+    *******CRITICAL CASIMIR POTENTIAL PARAMETERS********:
+      these parameters are based on a system with:
+            salt concentration:             1mM MgSO4   = 4.0 
+            volume fraction lutidine =      25%vol      
+            DP-A particles met diameter=    3.2 micron 
+            patch curvature R=              1.0 micron  
+            Debye length    =               2.775645608174734e-03 micron /    0.000867389252600 sigma 
+      these parameters are fitted between:
+            rwet in [0.30,0.60]
+            sc   in [-0.50,-0.01] 
+            dt   in [0.10,0.22]
+  pot.A =    0.357312454522366
+  pot.xi =  0.00820654310628785
+  pot.Arep =     10493.4229048992
+
+Looking for the minimum of the potential...    the colloid-colloid distance with minimum energy sys.E_smin=-17.791947 (sys.Ec_smin=-21.617271, sys.Erep_smin=3.825324) is 0.006867 
+    found s_min = 0.006867 [sigma]
+  pot.E_smin =    -17.7919473391988
+ at distance s=0.00 Urep==64.71 +  Uattr=-32.60  =  32.11
+  Delta_E =                   50
+  dE =     49.8978387062578
+found the overlap distance  = 0.004414 [sigma]
+Setting up the positions and sites for the particles...Reading particles setup directly from particles.inp
+  reading from path.inp: 
+      S_fixed  ... done 
+      s_accent   ... done 
+Reading from conf.inp
+Setting the positions for all the particles is done
+done
+Setting up the patch widths definitions for the particles...INTEGRATED SWITCHFUNCTION
+INTEGRATED SWITCHFUNCTION
+done
+printing potentials ... 
+done
+
+Setting GRAVITY PARAMETERS...
+         boltzmann 0.000013806485 [e-18 joule], T 306.950000000000 [K] ,sigma 0.000003200000 [m]
+         kt/sigma 1324.343947543750 
+         sys.sigma=0.00000 ,r_micron= 1.60000, fg = 8.076445 [kT/sigma]
+  fg =      8.0764449086159
+  fg_LJ =     8.07637661490812
+  z_search =          1.122745454
+         sys.sigma=0.00000 ,r_micron= 1.60000, fg = 7.695113 [kT/sigma]
+  fg =     7.69511251236925
+  fg_LJ =     7.69501842205411
+  z_search =          1.122732038
+   done
+         the density of the quasi-2D system 0.3819 [N/sigma^2] = 0.3000 area percentage 
+
+Setting up the MC parameters... 
+ **Setting up the MC parameters...
+ *****setting up the MC single particle ****
+*****setting up the MC cluster moves ****
+*****setting up the MC single-particle-clusters moves ****
+   .. done **
+
+Input read from path.inp:
+Simulation
+********* MC *********
+         cluster_MC 1
+         ncycle1          10000
+         ncycle2          50
+
+System
+         mc_warmup         0 
+         npart             1000
+         #particle types   2
+         beta              1.000000
+         boxl.x            51.170000
+         boxl.y            51.170000
+         boxl.z            51.170000
+
+Potential critical Casimir
+         rwet              0.462
+         surface_charge    -0.090
+         dl                0.000867389253
+         dT                0.120000
+         xi(dT)            0.008206543106287845
+         A(dT)             0.357312454522366041
+         Arep              10493.422904899187415140
+         s_cutoff           0.100
+         gravity           1.000000
+
+Particle Properties:
+
+* particle_type 0 
+         300 particle(s) have 3 patche(s) with pw=21.09 degrees: 
+         and patch vectors :
+            (   -0.50000     0.86603     0.00000 ) 
+            (   -0.50000    -0.86603     0.00000 ) 
+            (    1.00000     0.00000     0.00000 ) 
+         S integrated:            Saccent = exp[-cx^2 -dx^3 -ex^4 -fx^5 -gx^6 -hx^7 -ix^8] 
+           c                 0.000990413991109957
+           d                 -0.000482819535876744
+           e                 0.000268557557970742
+           f                 -0.000027014513359193

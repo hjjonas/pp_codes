@@ -1,0 +1,3 @@
+step 1 equilibration 
+step 2 active relaxation 
+step 3 measure_P_ass_diss and measure_rhoL_TPPbonds based on the trajectory.xyz

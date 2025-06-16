@@ -89,10 +89,6 @@ typedef struct particle_type {
                   bond_distance[MAXBONDS],  // the r_ss of the ith bond
                   bond_switch[MAXBONDS];    // the S of the ith bond
 
-    // specific version of active_network, add them later to versions of the code
-    // BondProperty  bond_op[MAXBONDS];
-    // AssDissTimes  ass_diss[NSITES]; // each patch has a timestamp that indicates its last binding or unbinding 
-
 } Pts;
 
 typedef struct system_type {

@@ -1,0 +1,52 @@
+SIMULATION
+sim_type 2 // perform MC  
+start_type 0 // start from rangom  
+particle_setup 1 // read from particles.inp
+ncycle1 10000 
+ncycle2 50 
+
+GRAPHICS
+graphics 0
+snapshot SNAPSHOT
+
+MC
+cluster_MC 1   // allow cluster moves
+bond_breakage 1  // allow breaking bonds
+
+BMD
+nearest_neighbor 0
+mobilityT 0.003417969
+mobilityR .05
+ninter 100
+timestep 0.000005
+
+
+ANALYSIS
+rdfanalysis 0
+cluster_analysis 1
+s_histogram 0
+adjacency 0 
+empty_files  1 // delete .out files if present
+xy_print 0
+print_trajectory 0
+
+GRAVITY
+gravity 1
+epsilongravLJ 500
+
+SWITCH_FUNCTION
+switch_method 1  // choose how S is defined if 1->S=SiSj
+S_fixed 0 0
+s_accent 1 1
+
+Simons_Potential
+dT .12
+r_wetting 0.462
+surface_charge -0.090
+
+System
+npart 1000 
+s_cutoff 0.1
+beta 1.0
+boxl 51.17
+boxly 51.17
