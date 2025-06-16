@@ -1,3 +1,5 @@
+code to run active network 
+example inputs  given for active system with FA=50, type II TPP particles, dT=0.15K (critical casimir potential) 
 step 1 equilibration 
 step 2 active relaxation 
 step 3 measure_P_ass_diss and measure_rhoL_TPPbonds based on the trajectory.xyz
